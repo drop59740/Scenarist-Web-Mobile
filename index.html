@@ -1,0 +1,3904 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Сценарист</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+:root {
+  --bg:#0f0f1a; --bg-2:#1a1a2e; --bg-3:#252540;
+  --accent:#ffb84d; --accent-2:#ff8c42;
+  --text:#e8e8f0; --text-dim:#8888a8;
+  --border:#2a2a45; --danger:#ff5757; --success:#4ade80;
+  --info:#5dade2;
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --fab-lift: 90px;
+  --editor-font-size: 15px;
+}
+
+html,body {
+  height:100%; overflow:hidden; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  font-size:16px; overscroll-behavior:none;
+  user-select:none; -webkit-user-select:none;
+  -webkit-touch-callout:none;
+  position:fixed;
+  width:100%;
+}
+
+input, textarea { user-select:text; -webkit-user-select:text; }
+
+button:focus { outline:none; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 12px; }
+input:focus-visible, textarea:focus-visible { outline:none; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 14px; }
+
+#app {
+  display:flex; flex-direction:column;
+  position:fixed; top:0; left:0; width:100%;
+  height:100vh; height:100dvh;
+  height:var(--app-h, 100dvh);
+  padding-top:var(--safe-top);
+  overflow:hidden;
+}
+.screen { min-height:0; }
+
+.header {
+  display:flex; align-items:center; gap:8px; padding:10px 12px;
+  background:var(--bg-2); border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.header-title {
+  flex:1; font-size:15px; font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  display:flex; align-items:center; justify-content:flex-start; gap:6px;
+  text-align:left;
+}
+.header-title.centered { justify-content:center; text-align:center; }
+.header-title .app-emoji { font-size:17px; display:inline-block; }
+.header-spacer { width:38px; flex-shrink:0; }
+
+.icon-btn {
+  width:38px; height:38px; border-radius:12px; background:var(--bg-3); border:none;
+  color:var(--text); display:flex; align-items:center; justify-content:center;
+  font-size:18px; cursor:pointer; flex-shrink:0;
+  transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.icon-btn:active, .icon-btn.pressed { opacity: .7; }
+.icon-btn.active { background: var(--accent); color: #000; }
+
+.screen { flex:1; display:none; flex-direction:column; overflow:hidden; position:relative; }
+.screen.active { display:flex; }
+
+.library { flex:1; overflow-y:auto; padding:12px; -webkit-overflow-scrolling:touch; }
+
+.project-card {
+  background:var(--bg-2); border:1px solid var(--border); border-radius:16px;
+  padding:14px; margin-bottom:10px; display:flex; align-items:center; gap:12px;
+  transition: opacity .15s ease, transform .18s var(--spring);
+  touch-action: manipulation;
+  position:relative;
+}
+.project-card:active, .project-card.pressed { opacity: .8; }
+.project-card.long-pressing {
+  transform: scale(.97);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.project-icon {
+  width:42px; height:42px; border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;
+}
+
+.project-info { flex:1; min-width:0; }
+.project-name { font-weight:600; font-size:15px; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.project-meta { font-size:12px; color:var(--text-dim); }
+
+.empty-state { text-align:center; padding:60px 20px; color:var(--text-dim); }
+.empty-state .emoji { font-size:56px; margin-bottom:16px; opacity:.6; display:inline-block; }
+.empty-state h2 { font-size:18px; color:var(--text); margin-bottom:8px; }
+.empty-state p { font-size:14px; line-height:1.5; }
+
+.editor-toolbar {
+  display:flex; gap:6px; padding:8px 10px; background:var(--bg-2);
+  border-bottom:1px solid var(--border); overflow-x:auto; flex-shrink:0;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch;
+}
+.editor-toolbar::-webkit-scrollbar { display:none; }
+
+.tool-chip {
+  padding:8px 13px; border-radius:20px; background:var(--bg-3);
+  border:1px solid var(--border); color:var(--text); font-size:13px; font-weight:500;
+  white-space:nowrap; cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; gap:5px; font-family:inherit;
+  transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.tool-chip:active, .tool-chip.pressed { opacity: .75; }
+.tool-chip.toggle-on { background: var(--info); color: #fff; border-color: var(--info); }
+
+.hint-bar {
+  padding:7px 14px; background:var(--bg-2); border-bottom:1px solid var(--border);
+  font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px;
+  flex-shrink:0; min-height:32px;
+}
+.hint-bar .hint-icon { font-size:14px; display:inline-block; }
+.hint-bar b { color:var(--accent); font-weight:600; }
+
+body.hide-tips .hint-bar { display: none; }
+
+.editor-area { flex:1; position:relative; overflow:hidden; background:var(--bg); }
+
+#scriptInput {
+  width:100%; height:100%; background:transparent; color:var(--text);
+  border:none; outline:none; resize:none; padding:16px;
+  font-family:'Courier New','SF Mono',monospace;
+  font-size: var(--editor-font-size);
+  line-height:1.65;
+  -webkit-appearance:none;
+  overflow-anchor: none;
+  scroll-behavior: auto;
+}
+#scriptInput::placeholder { color:var(--text-dim); opacity:.5; }
+
+.preview-container {
+  position:absolute; inset:0; overflow-y:auto; padding:20px 14px 30px;
+  -webkit-overflow-scrolling:touch;
+  font-family:'Courier New','SF Mono',monospace; font-size:14px; line-height:1.55;
+  background:#f6f2e8; color:#1a1a1a;
+}
+.pv-scene { font-weight:700; text-transform:uppercase; margin:20px 0 10px; letter-spacing:.5px; }
+.pv-action { margin:8px 0; }
+.pv-character { margin:14px 0 0 30%; text-transform:uppercase; font-weight:600; }
+.pv-dialogue { margin:0 0 0 15%; padding-right:18%; }
+.pv-paren { margin:0 0 0 22%; padding-right:28%; font-style:italic; color:#555; }
+.pv-transition { text-align:right; text-transform:uppercase; margin:14px 0; font-weight:600; }
+.pv-blank { height:10px; }
+.pv-empty {
+  text-align:center; color:#999; padding:60px 20px; font-style:italic;
+  font-family:-apple-system,sans-serif;
+}
+
+.editor-stats {
+  display:flex; align-items:center; justify-content:space-around;
+  padding:6px 12px; background:var(--bg-2); border-top:1px solid var(--border);
+  font-size:11.5px; color:var(--text-dim); flex-shrink:0; gap:8px;
+}
+.editor-stats .st { display:flex; align-items:center; gap:4px; white-space:nowrap; }
+.editor-stats .st b { color:var(--text); font-weight:600; }
+.editor-stats .st.save-ok b { color:var(--success); }
+.editor-stats .st.save-dirty b { color:var(--accent); }
+.editor-stats .st.goal-hit b { color: var(--success); }
+
+/* === ЦЕЛЬ ПО СЛОВАМ === */
+.goal-bar {
+  display:none;
+  padding:0 12px 6px; background:var(--bg-2);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+.goal-bar.active { display:block; }
+.goal-progress-track {
+  height:4px; background: rgba(255,255,255,.08); border-radius:2px; overflow:hidden;
+  margin-top:6px;
+}
+.goal-progress-fill {
+  height:100%; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width .3s ease, background .3s ease;
+}
+.goal-progress-fill.done { background: linear-gradient(90deg, var(--success), #22c55e); }
+.goal-label {
+  display:flex; justify-content:space-between;
+  font-size:11px; color:var(--text-dim);
+}
+
+.bottom-bar {
+  display:flex; gap:6px; padding:8px 10px;
+  padding-bottom:calc(8px + var(--safe-bottom));
+  background:var(--bg-2); border-top:1px solid var(--border); flex-shrink:0;
+}
+.bottom-bar .icon-btn { flex:1; height:40px; font-size:16px; }
+
+.modal-overlay {
+  position:fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index:100;
+  opacity: 0; pointer-events: none;
+  transition: opacity .18s ease;
+  overflow: hidden;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+.modal {
+  position: absolute; left: 50%; top: 0;
+  width: calc(100% - 40px); max-width: 420px;
+  overflow-y: auto;
+  padding: 24px; border-radius: 24px;
+  color: var(--text); background: var(--bg-2);
+  border: 1px solid var(--glass-border);
+  transform: translate(-50%, 0);
+  opacity: 0;
+  transition: opacity .2s ease, top .32s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Подавляем все анимации во время первичного позиционирования */
+.modal.no-transition { transition: none !important; }
+
+.modal-overlay.active .modal { opacity: 1; }
+
+.modal h3 {
+  font-size:18px; margin-bottom:18px; font-weight:600;
+  text-align:center; letter-spacing: -0.2px;
+}
+
+.modal-input {
+  width:100%; padding:14px 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px; color: var(--text); font-size: 15px;
+  outline: none; margin-bottom: 16px; font-family: inherit;
+  transition: border-color .18s ease;
+  -webkit-appearance: none;
+}
+.modal-input::placeholder { color: rgba(232, 232, 240, 0.4); }
+.modal-input:focus { border-color: rgba(255, 184, 77, 0.6); }
+
+.modal-actions { display:flex; gap:10px; margin-top:8px; }
+
+.btn {
+  flex:1; padding:14px; border-radius: 14px;
+  border:none; font-size: 15px; font-weight: 600;
+  cursor:pointer; font-family:inherit;
+  transition: opacity .15s ease;
+  -webkit-appearance: none;
+  touch-action: manipulation;
+}
+.btn:active, .btn.pressed { opacity: .75; }
+.btn:disabled { opacity: .35 !important; cursor: not-allowed; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #1a1a2e;
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.btn-danger {
+  background: linear-gradient(135deg, #ff5757, #e83d3d);
+  color: #fff;
+}
+
+/* === ШАБЛОНЫ === */
+.template-grid {
+  display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:16px;
+}
+.template-item {
+  padding:14px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: var(--text); font-family:inherit;
+  cursor: pointer; text-align: left;
+  transition: border-color .18s ease, background .18s ease;
+  touch-action: manipulation;
+}
+.template-item:active, .template-item.pressed {
+  background: rgba(255, 184, 77, 0.08);
+}
+.template-item.selected {
+  border-color: var(--accent);
+  background: rgba(255, 184, 77, 0.1);
+}
+.template-emoji { font-size: 22px; display:block; margin-bottom:8px; }
+.template-title { font-size:13px; font-weight: 600; margin-bottom:3px; }
+.template-desc { font-size:11px; color: var(--text-dim); line-height:1.35; }
+
+/* === ПОШАГОВОЕ СОЗДАНИЕ === */
+.step-block { animation: stepIn .28s var(--ease); }
+@keyframes stepIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chosen-template {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255, 184, 77, 0.08);
+  border: 1px solid rgba(255, 184, 77, 0.28);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  color: var(--text);
+  font-size: 13.5px;
+}
+
+.step-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 0 4px;
+  margin-bottom: 10px;
+}
+
+.step-heading .step-change-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.step-heading .step-change-btn:active { opacity: .6; }
+
+body:not(.animations-enabled) .step-block { animation: none; }
+
+/* === НАВИГАТОР ПО СЦЕНАМ === */
+.scene-nav-list {
+  max-height: 55vh; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  margin-bottom: 16px;
+}
+.scene-nav-item {
+  padding: 12px 14px; cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background .15s ease;
+  touch-action: manipulation;
+}
+.scene-nav-item:last-child { border-bottom:none; }
+.scene-nav-item:active, .scene-nav-item.pressed {
+  background: rgba(255, 184, 77, 0.08);
+}
+.scene-nav-num {
+  display:inline-block; min-width: 24px;
+  font-size: 11px; font-weight: 700;
+  color: var(--accent); margin-right: 8px;
+}
+.scene-nav-title {
+  font-size: 13.5px; font-weight: 600;
+  color: var(--text); letter-spacing: .3px;
+}
+.scene-nav-preview {
+  font-size: 11.5px; color: var(--text-dim);
+  margin-top: 4px; margin-left: 32px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* === НАСТРОЙКИ: СЛАЙДЕР === */
+.settings-slider-row {
+  padding: 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 10px;
+}
+.sr-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sr-label { font-size: 14.5px; font-weight: 500; color: var(--text); }
+.sr-value {
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  font-family: 'Courier New', monospace;
+  padding: 2px 10px; background: rgba(255, 184, 77, 0.12);
+  border-radius: 8px;
+}
+.sr-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; margin-bottom: 8px; }
+
+input[type="range"].font-slider {
+  width: 100%; height: 24px;
+  -webkit-appearance: none; appearance: none;
+  background: transparent; outline: none;
+  touch-action: manipulation;
+}
+input[type="range"].font-slider::-webkit-slider-runnable-track {
+  height: 4px; background: rgba(255,255,255,.12); border-radius: 2px;
+}
+input[type="range"].font-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 2px 6px rgba(255,184,77,.4);
+  margin-top: -9px; cursor: pointer;
+}
+input[type="range"].font-slider::-moz-range-track {
+  height: 4px; background: rgba(255,255,255,.12); border-radius: 2px;
+}
+input[type="range"].font-slider::-moz-range-thumb {
+  width: 22px; height: 22px; border: none; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 2px 6px rgba(255,184,77,.4);
+  cursor: pointer;
+}
+
+/* === ПОИСК В ТЕКСТЕ: КАУНТЕР === */
+.find-counter-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; padding: 0 4px;
+}
+.find-counter {
+  font-size: 12.5px; color: var(--text-dim); font-weight: 500;
+}
+.find-counter b { color: var(--accent); }
+
+/* === КОНТЕКСТНОЕ МЕНЮ ПРОЕКТА === */
+.ctx-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+.ctx-actions .tool-btn { grid-column: auto; }
+
+/* === Список выбора сценариев === */
+.select-list {
+  max-height: 45vh; overflow-y: auto; margin-bottom: 16px;
+  border: 1px solid var(--border); border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
+
+.select-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: opacity .15s ease, background .15s ease;
+  touch-action: manipulation;
+}
+.select-item:last-child { border-bottom: none; }
+.select-item:active, .select-item.pressed { background: rgba(255,255,255,.05); }
+
+.select-check {
+  width: 22px; height: 22px; flex-shrink: 0; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px; position: relative;
+  transition: background .15s ease, border-color .15s ease;
+}
+.select-check:checked {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+}
+.select-check:checked::after {
+  content: ''; position: absolute;
+  left: 6px; top: 2px; width: 6px; height: 11px;
+  border: solid #1a1a2e; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.select-info { flex: 1; min-width: 0; }
+.select-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.select-meta { font-size: 11.5px; color: var(--text-dim); }
+
+.select-actions-row {
+  display: flex; gap: 8px; margin-bottom: 12px; font-size: 12.5px;
+}
+.select-actions-row button {
+  background: none; border: none; color: var(--accent);
+  font-family: inherit; font-size: 12.5px; cursor: pointer;
+  padding: 4px 8px; border-radius: 8px;
+  transition: opacity .15s ease;
+}
+.select-actions-row button:active { opacity: .6; }
+
+.toast {
+  position:fixed;
+  bottom: calc(90px + var(--safe-bottom));
+  left:50%; transform: translate3d(-50%, 0, 0);
+  background: rgba(37, 37, 64, 0.96);
+  color:var(--text); padding:12px 22px;
+  border-radius: 18px; font-size:13px; font-weight:500;
+  opacity:0; transition: opacity .18s ease;
+  pointer-events:none; z-index:200;
+  border: 1px solid var(--glass-border);
+  max-width:90vw; text-align:center;
+}
+.toast.show { opacity:1; }
+
+body.keyboard-open .toast { bottom: calc(90px + var(--safe-bottom)); z-index: 250; }
+
+.tools-panel { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+.tool-btn {
+  padding:14px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px; color:var(--text);
+  font-size:13px; text-align:left; cursor:pointer;
+  display:flex; align-items:center; gap:10px; font-family:inherit;
+  transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.tool-btn:active, .tool-btn.pressed { opacity: .75; }
+.tool-btn .t-emoji { font-size:20px; }
+
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+.stat-box {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px; padding:14px 10px; text-align:center;
+  transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.stat-box:active, .stat-box.pressed { opacity: .8; }
+.stat-num { font-size:22px; font-weight:700; color:var(--accent); margin-bottom:2px; }
+.stat-label { font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; }
+
+.search-bar {
+  padding:0 12px; background:var(--bg-2);
+  border-bottom:1px solid var(--border);
+  display:flex; gap:8px; align-items:center;
+  max-height:0; overflow:hidden;
+  transition: max-height .18s ease, padding .18s ease;
+}
+.search-bar.active { max-height: 70px; padding: 10px 12px; }
+.search-bar input {
+  flex:1; padding:10px 14px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 12px; color: var(--text);
+  font-size: 14px; outline: none; font-family: inherit;
+  transition: border-color .18s ease;
+}
+.search-bar input:focus { border-color: var(--accent); }
+
+.fab {
+  position:absolute; right:16px;
+  bottom:calc(var(--fab-lift) + var(--safe-bottom));
+  width:56px; height:56px; border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  border:none; color:#1a1a2e; font-size:26px; font-weight:300; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  z-index:10;
+  transition: opacity .15s ease, bottom .2s ease;
+  touch-action: manipulation;
+}
+.fab:active, .fab.pressed { opacity: .8; }
+body.keyboard-open .fab { bottom: calc(20px + var(--safe-bottom)); }
+
+.settings-content {
+  flex:1; overflow-y:auto;
+  padding:16px 12px;
+  padding-bottom:calc(30px + var(--safe-bottom));
+  -webkit-overflow-scrolling:touch;
+}
+
+.settings-group { margin-bottom:24px; }
+
+.settings-group-title {
+  font-size:11.5px; font-weight:600; color:var(--text-dim);
+  text-transform:uppercase; letter-spacing:0.8px;
+  padding:0 4px; margin-bottom:10px;
+}
+
+.toggle-row {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; padding:16px;
+  background:var(--bg-2); border:1px solid var(--border);
+  border-radius:16px; cursor:pointer; margin-bottom:10px;
+  transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.toggle-row:active, .toggle-row.pressed { opacity: .85; }
+.toggle-row:last-child { margin-bottom:0; }
+
+.tr-label { font-size:14.5px; font-weight:500; color:var(--text); margin-bottom:3px; }
+.tr-desc { font-size:12px; color:var(--text-dim); line-height:1.4; }
+
+.toggle-switch {
+  position:relative; width:48px; height:28px;
+  background:var(--bg-3); border:1px solid var(--border);
+  border-radius:14px; flex-shrink:0;
+}
+.toggle-switch::after {
+  content:''; position:absolute; top:2px; left:2px;
+  width:22px; height:22px; background:#fff; border-radius:50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,.3);
+}
+.toggle-switch.on {
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  border-color:transparent;
+}
+.toggle-switch.on::after { transform:translateX(20px); }
+
+.settings-btn {
+  width:100%; display:flex; align-items:center; gap:14px;
+  padding:16px; background:var(--bg-2);
+  border:1px solid var(--border); border-radius:16px;
+  color:var(--text); font-family:inherit; font-size:14.5px;
+  text-align:left; cursor:pointer; margin-bottom:10px;
+  transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.settings-btn:active, .settings-btn.pressed { opacity: .8; }
+.settings-btn:last-child { margin-bottom:0; }
+
+.sb-icon {
+  width:42px; height:42px; border-radius:12px;
+  background:var(--bg-3);
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.sb-label { font-weight:600; color:var(--text); margin-bottom:2px; font-size:14.5px; }
+.sb-desc { font-size:12px; color:var(--text-dim); line-height:1.4; }
+
+.settings-btn.danger .sb-icon { background:rgba(255,87,87,.15); }
+.settings-btn.danger .sb-label { color:var(--danger); }
+
+.settings-footer {
+  text-align:center; font-size:12px; color:var(--text-dim);
+  line-height:1.7; padding:24px 10px 10px; opacity:.7;
+}
+.settings-footer .footer-emoji {
+  font-size:14px; display:inline-block;
+  margin-right:2px; vertical-align:-1px;
+}
+
+.handbook-tabs {
+  display:flex; gap:6px; padding:10px;
+  background:var(--bg-2); border-bottom:1px solid var(--border);
+  overflow-x:auto; flex-shrink:0;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch;
+}
+.handbook-tabs::-webkit-scrollbar { display:none; }
+.hb-tab {
+  padding:8px 14px; border-radius:20px;
+  background:var(--bg-3); border:1px solid var(--border);
+  color:var(--text); font-size:13px; font-weight:500;
+  white-space:nowrap; cursor:pointer; flex-shrink:0;
+  font-family:inherit; transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.hb-tab:active, .hb-tab.pressed { opacity: .75; }
+.hb-tab.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color:#1a1a2e; border-color: transparent; font-weight:600;
+}
+
+.handbook-content {
+  flex:1; overflow-y:auto; padding:14px 12px;
+  padding-bottom:calc(30px + var(--safe-bottom));
+  -webkit-overflow-scrolling:touch;
+}
+
+.hb-intro {
+  background: linear-gradient(135deg, rgba(255,184,77,.14), rgba(255,140,66,.06));
+  border:1px solid rgba(255,184,77,.25); border-radius:16px;
+  padding:18px; margin-bottom:14px;
+}
+.hb-intro .hb-badge {
+  display:inline-block; padding:3px 10px; border-radius:20px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color:#1a1a2e; font-size:10.5px;
+  font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+  margin-bottom:10px;
+}
+.hb-intro h2 { font-size:17px; margin-bottom:6px; color:var(--text); font-weight:700; }
+.hb-intro p { font-size:13.5px; line-height:1.6; color:var(--text-dim); }
+
+.hb-accordion {
+  background:var(--bg-2); border:1px solid var(--border); border-radius:16px;
+  margin-bottom:8px; overflow:hidden;
+  transition: border-color .18s ease;
+}
+.hb-accordion.open { border-color: rgba(255,184,77,.4); }
+
+.hb-acc-header {
+  padding:14px 16px; display:flex; align-items:center; gap:12px;
+  cursor:pointer; user-select:none;
+  transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.hb-acc-header:active, .hb-acc-header.pressed { opacity: .8; }
+.hb-acc-icon { font-size:20px; flex-shrink:0; }
+.hb-acc-title { flex:1; font-size:14.5px; font-weight:600; color:var(--text); }
+.hb-acc-arrow {
+  color:var(--text-dim); font-size:16px;
+  flex-shrink:0; width:16px; text-align:center;
+}
+.hb-accordion.open .hb-acc-arrow { transform: rotate(90deg); color:var(--accent); }
+
+.hb-acc-body { max-height:0; overflow:hidden; transition: max-height .2s ease; }
+.hb-accordion.open .hb-acc-body { max-height:4000px; }
+
+.hb-acc-inner {
+  padding:0 16px 16px 16px; font-size:13.5px; line-height:1.75;
+  color:var(--text-dim); border-top:1px solid var(--border); padding-top:14px;
+}
+.hb-acc-inner p { margin-bottom:10px; }
+.hb-acc-inner p:last-child { margin-bottom:0; }
+.hb-acc-inner b, .hb-acc-inner strong { color:var(--text); font-weight:600; }
+.hb-acc-inner ul, .hb-acc-inner ol { padding-left:20px; margin-bottom:10px; }
+.hb-acc-inner li { margin-bottom:6px; line-height:1.6; }
+.hb-acc-inner code {
+  background:var(--bg); padding:2px 7px; border-radius:5px;
+  color:var(--accent); font-size:12.5px; font-family:'Courier New',monospace;
+  border:1px solid var(--border);
+}
+.hb-acc-inner .hb-step { display:flex; gap:10px; margin-bottom:12px; }
+.hb-acc-inner .hb-step-num {
+  width:24px; height:24px; border-radius:50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color:#1a1a2e;
+  font-size:12px; font-weight:700; display:flex; align-items:center;
+  justify-content:center; flex-shrink:0; margin-top:1px;
+}
+.hb-acc-inner .hb-step-text { flex:1; line-height:1.65; font-size:13.5px; }
+.hb-acc-inner .hb-step-text b { color:var(--text); }
+
+.hb-tip {
+  background:rgba(93,173,226,.1); border-left:3px solid var(--info);
+  padding:10px 14px; border-radius:0 12px 12px 0; margin:12px 0;
+  font-size:13px; line-height:1.65; color:var(--text-dim);
+}
+.hb-tip b { color:var(--info); }
+
+.hb-warn {
+  background:rgba(255,184,77,.08); border-left:3px solid var(--accent);
+  padding:10px 14px; border-radius:0 12px 12px 0; margin:12px 0;
+  font-size:13px; line-height:1.65; color:var(--text-dim);
+}
+.hb-warn b { color:var(--accent); }
+
+.hb-empty-search { text-align:center; padding:50px 20px; color:var(--text-dim); }
+.hb-empty-search .emoji { font-size:44px; opacity:.5; margin-bottom:12px; }
+
+.hb-kbd {
+  display:inline-block; padding:2px 8px; background:var(--bg-3);
+  border:1px solid var(--border); border-bottom-width:2px;
+  border-radius:6px; font-size:12px; font-family:'Courier New',monospace;
+  color:var(--text); margin:0 2px;
+}
+
+.hb-example {
+  background:#f6f2e8; color:#1a1a1a; padding:12px 14px; border-radius:12px;
+  font-family:'Courier New',monospace; font-size:12.5px; line-height:1.5;
+  margin:10px 0; overflow-x:auto; white-space:pre;
+}
+.hb-example .ex-scene { font-weight:700; }
+.hb-example .ex-char { margin-left:25%; font-weight:600; }
+.hb-example .ex-dial { margin-left:12%; }
+.hb-example .ex-paren { margin-left:18%; font-style:italic; color:#555; }
+.hb-example .ex-trans { text-align:right; font-weight:600; }
+
+.hb-link-btn {
+  display:flex; align-items:center; gap:12px;
+  background: linear-gradient(135deg, rgba(93,173,226,.15), rgba(93,173,226,.05));
+  border:1px solid rgba(93,173,226,.4);
+  padding:14px 16px; border-radius:14px;
+  text-decoration:none; color:var(--text);
+  margin:10px 0; transition: opacity .15s ease;
+  touch-action: manipulation;
+}
+.hb-link-btn:active, .hb-link-btn.pressed { opacity: .8; }
+.hb-link-btn .link-icon {
+  width:40px; height:40px; border-radius:12px;
+  background: linear-gradient(135deg, #5dade2, #3b8fd0);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0; color:#fff;
+}
+.hb-link-btn .link-info { flex:1; min-width:0; }
+.hb-link-btn .link-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:3px; }
+.hb-link-btn .link-url { font-size:11.5px; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hb-link-btn .link-arrow { color:var(--text-dim); font-size:18px; flex-shrink:0; }
+
+@media (max-width:360px) {
+  .pv-character { margin-left:22%; }
+  .pv-dialogue { margin-left:10%; padding-right:10%; }
+  .hb-acc-title { font-size:13.5px; }
+  .template-grid { grid-template-columns:1fr; }
+}
+
+/* === АНИМАЦИИ === */
+body.animations-enabled .icon-btn {
+  transition: transform .18s var(--spring), background .15s ease, color .15s ease, opacity .15s ease;
+}
+body.animations-enabled .icon-btn:active,
+body.animations-enabled .icon-btn.pressed {
+  transform: scale(.88); opacity: 1; background: var(--bg-3); color: var(--text);
+}
+body.animations-enabled .icon-btn.active:active,
+body.animations-enabled .icon-btn.active.pressed {
+  background: var(--accent); color: #000;
+}
+
+body.animations-enabled .btn { transition: transform .15s var(--spring), opacity .15s ease; }
+body.animations-enabled .btn:active,
+body.animations-enabled .btn.pressed { transform: scale(.95); opacity: 1; }
+body.animations-enabled .btn:disabled { transform: none !important; }
+
+body.animations-enabled .screen.active { animation: screenIn .28s var(--ease); }
+@keyframes screenIn {
+  from { opacity:0; transform: translate3d(0, 8px, 0); }
+  to { opacity:1; transform: translate3d(0, 0, 0); }
+}
+
+body.animations-enabled .project-card {
+  transition: transform .18s var(--spring), opacity .15s ease, box-shadow .2s ease;
+  animation: cardIn .45s var(--ease) backwards;
+}
+body.animations-enabled .project-card:nth-child(1) { animation-delay: 0.03s; }
+body.animations-enabled .project-card:nth-child(2) { animation-delay: 0.07s; }
+body.animations-enabled .project-card:nth-child(3) { animation-delay: 0.11s; }
+body.animations-enabled .project-card:nth-child(4) { animation-delay: 0.15s; }
+body.animations-enabled .project-card:nth-child(5) { animation-delay: 0.19s; }
+body.animations-enabled .project-card:active,
+body.animations-enabled .project-card.pressed { transform: scale(.97); opacity: 1; }
+body.animations-enabled .project-card:active .project-icon,
+body.animations-enabled .project-card.pressed .project-icon { transform: scale(.92); }
+@keyframes cardIn {
+  from { opacity:0; transform: translateY(16px) scale(.96); }
+  to { opacity:1; transform: translateY(0) scale(1); }
+}
+
+body.animations-enabled .project-icon { transition: transform .18s var(--spring); }
+
+body.animations-enabled .empty-state { animation: fadeIn .6s var(--ease); }
+body.animations-enabled .empty-state .emoji { animation: floatEmoji 3s ease-in-out infinite; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(10px);} to { opacity:1; transform: translateY(0);} }
+@keyframes floatEmoji { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+body.animations-enabled .tool-chip { transition: transform .15s var(--spring), opacity .15s ease; }
+body.animations-enabled .tool-chip:active,
+body.animations-enabled .tool-chip.pressed { transform: scale(.92); opacity: 1; }
+
+body.animations-enabled .hint-bar .hint-icon { transition: transform .25s var(--spring); }
+body.animations-enabled .header-title .app-emoji { transition: transform .4s var(--spring); }
+
+body.animations-enabled .modal {
+  transition: opacity .22s ease, transform .26s var(--spring), top .32s var(--ease);
+  transform: translate(-50%, -10px);
+}
+body.animations-enabled .modal-overlay.active .modal { transform: translate(-50%, 0); }
+
+body.animations-enabled .toast {
+  transform: translate3d(-50%, 20px, 0);
+  transition: opacity .22s ease, transform .26s var(--spring);
+}
+body.animations-enabled .toast.show { transform: translate3d(-50%, 0, 0); }
+
+body.animations-enabled .tool-btn { transition: transform .15s var(--spring), opacity .15s ease; }
+body.animations-enabled .tool-btn:active,
+body.animations-enabled .tool-btn.pressed { transform: scale(.95); opacity: 1; }
+body.animations-enabled .tool-btn .t-emoji { transition: transform .35s var(--spring); }
+body.animations-enabled .tool-btn:active .t-emoji,
+body.animations-enabled .tool-btn.pressed .t-emoji { transform: scale(1.15) rotate(-8deg); }
+
+body.animations-enabled .stat-box { transition: transform .35s var(--spring), opacity .15s ease; }
+body.animations-enabled .stat-box:active,
+body.animations-enabled .stat-box.pressed { transform: scale(.95); opacity: 1; }
+
+body.animations-enabled .search-bar { transition: max-height .22s ease, padding .22s ease; }
+body.animations-enabled .search-bar input { transition: border-color .18s ease, box-shadow .18s ease; }
+body.animations-enabled .search-bar input:focus { box-shadow: 0 0 0 3px rgba(255, 184, 77, 0.12); }
+
+body.animations-enabled .fab {
+  transition: transform .2s var(--spring), opacity .15s ease, bottom .25s var(--ease);
+}
+body.animations-enabled .fab:active,
+body.animations-enabled .fab.pressed { transform: scale(.88); opacity: 1; }
+
+body.animations-enabled .toggle-switch { transition: background .25s ease, border-color .25s ease; }
+body.animations-enabled .toggle-switch::after { transition: transform .25s var(--spring); }
+
+body.animations-enabled .settings-btn { transition: transform .15s var(--spring), opacity .15s ease; }
+body.animations-enabled .settings-btn:active,
+body.animations-enabled .settings-btn.pressed { transform: scale(.98); opacity: 1; }
+
+body.animations-enabled .toggle-row { transition: opacity .15s ease; }
+body.animations-enabled .toggle-row:active,
+body.animations-enabled .toggle-row.pressed { opacity: .85; }
+
+body.animations-enabled .hb-tab { transition: transform .15s var(--spring), opacity .15s ease; }
+body.animations-enabled .hb-tab:active,
+body.animations-enabled .hb-tab.pressed { transform: scale(.92); opacity: 1; }
+
+body.animations-enabled .hb-accordion {
+  transition: border-color .18s ease;
+  animation: cardIn .45s var(--ease) backwards;
+}
+body.animations-enabled .hb-accordion:nth-child(1) { animation-delay: 0.03s; }
+body.animations-enabled .hb-accordion:nth-child(2) { animation-delay: 0.07s; }
+body.animations-enabled .hb-accordion:nth-child(3) { animation-delay: 0.11s; }
+body.animations-enabled .hb-accordion:nth-child(4) { animation-delay: 0.15s; }
+body.animations-enabled .hb-accordion:nth-child(5) { animation-delay: 0.19s; }
+
+body.animations-enabled .hb-acc-header { transition: opacity .15s ease; }
+body.animations-enabled .hb-acc-header:active,
+body.animations-enabled .hb-acc-header.pressed { opacity: .8; }
+body.animations-enabled .hb-acc-arrow { transition: transform .22s ease, color .18s ease; }
+body.animations-enabled .hb-accordion.open .hb-acc-arrow { transform: rotate(90deg); }
+body.animations-enabled .hb-acc-body { transition: max-height .28s ease; }
+
+body.animations-enabled .hb-link-btn { transition: transform .18s var(--spring), opacity .15s ease; }
+body.animations-enabled .hb-link-btn:active,
+body.animations-enabled .hb-link-btn.pressed { transform: scale(.97); opacity: 1; }
+
+body.animations-enabled .template-item { transition: transform .15s var(--spring), border-color .18s ease; }
+body.animations-enabled .template-item:active,
+body.animations-enabled .template-item.pressed { transform: scale(.97); }
+
+body.animations-enabled .scene-nav-item { transition: background .15s ease; }
+
+body.animations-enabled .goal-progress-fill { transition: width .4s var(--ease), background .3s ease; }
+
+body.animations-enabled .hint-bar { transition: opacity .3s ease; }
+
+body.animations-enabled .select-item { transition: background .15s ease; }
+body.animations-enabled .select-check { transition: background .15s ease, border-color .15s ease; }
+
+/* === ЭФФЕКТЫ === */
+body.effects-enabled .icon-btn { box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+body.effects-enabled .icon-btn.active { box-shadow: 0 3px 12px rgba(255,184,77,.4); }
+
+body.effects-enabled .project-card { box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+body.effects-enabled .project-icon { box-shadow: 0 3px 10px rgba(255,184,77,.25); }
+body.effects-enabled .project-card.long-pressing { box-shadow: 0 0 0 2px var(--accent), 0 6px 20px rgba(255,184,77,.3); }
+
+body.effects-enabled .modal-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+body.effects-enabled .modal {
+  background: linear-gradient(135deg, rgba(38, 38, 62, 0.96), rgba(26, 26, 44, 0.96));
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+body.effects-enabled .modal::before {
+  content: ''; position: absolute; inset: 0; border-radius: 24px;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.03) 100%);
+  pointer-events: none;
+}
+
+body.effects-enabled .btn-primary { box-shadow: 0 6px 20px rgba(255, 184, 77, 0.3); }
+body.effects-enabled .btn-secondary { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+body.effects-enabled .btn-danger { box-shadow: 0 6px 20px rgba(255, 87, 87, 0.3); }
+
+body.effects-enabled .toast {
+  background: rgba(37, 37, 64, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+body.effects-enabled .fab { box-shadow: 0 6px 18px rgba(255,184,77,.4); }
+body.effects-enabled .tool-chip.toggle-on { box-shadow: 0 3px 10px rgba(93,173,226,.3); }
+
+body.effects-enabled .hb-tab.active { box-shadow: 0 3px 12px rgba(255,184,77,.3); }
+body.effects-enabled .hb-accordion.open { box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+body.effects-enabled .hb-intro { box-shadow: 0 4px 16px rgba(255,184,77,.1); }
+
+body.effects-enabled .settings-btn.danger .sb-icon { box-shadow: 0 3px 10px rgba(255,87,87,.25); }
+body.effects-enabled .toggle-switch.on { box-shadow: 0 3px 12px rgba(255,184,77,.35); }
+
+body.effects-enabled .empty-state .emoji { filter: drop-shadow(0 4px 12px rgba(255,184,77,.2)); }
+body.effects-enabled .project-icon { filter: drop-shadow(0 2px 6px rgba(255,184,77,.2)); }
+
+body.effects-enabled .fab { background-size: 200% 200%; }
+body.effects-enabled.animations-enabled .fab { animation: fabGlow 4s ease-in-out infinite; }
+@keyframes fabGlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+body:not(.animations-enabled) * { animation: none !important; }
+body:not(.animations-enabled) .screen.active { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- БИБЛИОТЕКА -->
+  <div class="screen active" id="libraryScreen">
+    <div class="header">
+      <div class="header-title" id="libraryTitle">
+        <span class="app-emoji" id="appEmoji" aria-hidden="true">✒️</span>
+        <span>Сценарист</span>
+      </div>
+      <button class="icon-btn" id="searchToggle" aria-label="Поиск">🔍</button>
+      <button class="icon-btn" id="handbookBtn" aria-label="Справочник">❓</button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Настройки">⚙️</button>
+    </div>
+    <div class="search-bar" id="searchBar">
+      <input type="text" id="searchInput" placeholder="Поиск по названию..." aria-label="Поиск по названию">
+      <button class="icon-btn" id="searchClose" aria-label="Закрыть поиск">✕</button>
+    </div>
+    <div class="library" id="libraryList"></div>
+    <button class="fab" id="newProjectBtn" aria-label="Новый сценарий">＋</button>
+  </div>
+
+  <!-- РЕДАКТОР -->
+  <div class="screen" id="editorScreen">
+    <div class="header">
+      <button class="icon-btn" id="backBtn" aria-label="Назад">‹</button>
+      <div class="header-title centered" id="editorTitle">Без названия</div>
+      <button class="icon-btn" id="previewBtn" aria-label="Превью">👁</button>
+      <button class="icon-btn" id="saveBtn" aria-label="Сохранить">💾</button>
+      <button class="icon-btn" id="menuBtn" aria-label="Меню">⋯</button>
+    </div>
+
+    <div class="editor-toolbar" id="editorToolbar">
+      <button class="tool-chip" data-insert="scene">🎬 Сцена</button>
+      <button class="tool-chip" data-insert="action">📝 Действие</button>
+      <button class="tool-chip" data-insert="character">👤 Персонаж</button>
+      <button class="tool-chip" data-insert="dialog">💬 Реплика</button>
+      <button class="tool-chip" data-insert="parenthetical">( ) Ремарка</button>
+      <button class="tool-chip" data-insert="transition">➡️ Переход</button>
+      <button class="tool-chip" id="focusToggle">🎯 Фокус</button>
+    </div>
+
+    <div class="hint-bar" id="hintBar">
+      <span class="hint-icon">💡</span>
+      <span id="hintText">Нажмите на элемент выше или начните печатать</span>
+    </div>
+
+    <div class="editor-area">
+      <textarea id="scriptInput" placeholder="Начните писать сценарий...&#10;&#10;Используйте кнопки выше для вставки элементов сцены." spellcheck="true" aria-label="Текст сценария"></textarea>
+      <div class="preview-container" id="previewContainer" style="display:none"></div>
+    </div>
+
+    <div class="editor-stats">
+      <div class="st"><span aria-hidden="true">📝</span><b id="statWords">0</b>&nbsp;слов</div>
+      <div class="st"><span aria-hidden="true">📄</span><b id="statPages">~1</b>&nbsp;стр</div>
+      <div class="st"><span aria-hidden="true">🎬</span><b id="statScenes">0</b>&nbsp;сцен</div>
+      <div class="st save-ok" id="statSaveBox"><span id="statSaveIcon" aria-hidden="true">✓</span><b id="statSave">Сохранено</b></div>
+    </div>
+
+    <div class="goal-bar" id="goalBar">
+      <div class="goal-label">
+        <span>🎯 Цель</span>
+        <span id="goalProgressText">0 / 0</span>
+      </div>
+      <div class="goal-progress-track">
+        <div class="goal-progress-fill" id="goalProgressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="icon-btn" id="undoBtn" aria-label="Отменить">↶</button>
+      <button class="icon-btn" id="redoBtn" aria-label="Повторить">↷</button>
+      <button class="icon-btn" id="findBtn" aria-label="Найти и заменить">🔎</button>
+      <button class="icon-btn" id="scenesBtn" aria-label="Навигатор по сценам">🧭</button>
+      <button class="icon-btn" id="statsBtn" aria-label="Статистика">📊</button>
+      <button class="icon-btn" id="timerBtn" aria-label="Помодоро">⏱️</button>
+      <button class="icon-btn" id="formatBtn" aria-label="Формат">🎨</button>
+    </div>
+  </div>
+
+  <!-- НАСТРОЙКИ -->
+  <div class="screen" id="settingsScreen">
+    <div class="header">
+      <button class="icon-btn" id="settingsBack" aria-label="Назад">‹</button>
+      <div class="header-title centered">Настройки</div>
+      <div class="header-spacer"></div>
+    </div>
+    <div class="settings-content">
+
+      <div class="settings-group">
+        <div class="settings-group-title">Внешний вид</div>
+        <div class="toggle-row" id="animToggleRow" role="switch" aria-checked="false" tabindex="0">
+          <div style="flex:1">
+            <div class="tr-label">Анимации</div>
+            <div class="tr-desc">Каскады, пружины, плавные переходы</div>
+          </div>
+          <div class="toggle-switch" id="animToggle"></div>
+        </div>
+        <div class="toggle-row" id="effectsToggleRow" role="switch" aria-checked="false" tabindex="0">
+          <div style="flex:1">
+            <div class="tr-label">Эффекты</div>
+            <div class="tr-desc">Тени, свечения, размытие фона, градиенты</div>
+          </div>
+          <div class="toggle-switch" id="effectsToggle"></div>
+        </div>
+
+        <div class="settings-slider-row">
+          <div class="sr-header">
+            <div class="sr-label">🔠 Размер шрифта редактора</div>
+            <div class="sr-value" id="fontSizeValue">15px</div>
+          </div>
+          <div class="sr-desc">Меньше — больше текста на экране, больше — легче читать</div>
+          <input type="range" class="font-slider" id="fontSizeSlider" min="13" max="20" step="1" value="15" aria-label="Размер шрифта редактора">
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Письмо</div>
+        <button class="settings-btn" id="wordGoalBtn">
+          <span class="sb-icon" aria-hidden="true">🎯</span>
+          <div style="flex:1">
+            <div class="sb-label">Цель по словам</div>
+            <div class="sb-desc" id="wordGoalDesc">Не задана — нажмите, чтобы установить</div>
+          </div>
+        </button>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Интерфейс</div>
+        <div class="toggle-row" id="toastsToggleRow" role="switch" aria-checked="true" tabindex="0">
+          <div style="flex:1">
+            <div class="tr-label">Показывать тосты</div>
+            <div class="tr-desc">Всплывающие уведомления о действиях</div>
+          </div>
+          <div class="toggle-switch" id="toastsToggle"></div>
+        </div>
+        <div class="toggle-row" id="tipsToggleRow" role="switch" aria-checked="true" tabindex="0">
+          <div style="flex:1">
+            <div class="tr-label">Советы и пояснения</div>
+            <div class="tr-desc">Подсказки в редакторе: «Нажмите на элемент выше…»</div>
+          </div>
+          <div class="toggle-switch" id="tipsToggle"></div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Данные</div>
+        <button class="settings-btn" id="deleteAllScenariosBtn">
+          <span class="sb-icon" aria-hidden="true">📄</span>
+          <div style="flex:1">
+            <div class="sb-label">Удалить все сценарии</div>
+            <div class="sb-desc">Удалить только сценарии, настройки сохранятся</div>
+          </div>
+        </button>
+        <button class="settings-btn" id="deleteSomeScenariosBtn">
+          <span class="sb-icon" aria-hidden="true">☑️</span>
+          <div style="flex:1">
+            <div class="sb-label">Удалить несколько сценариев</div>
+            <div class="sb-desc">Выбрать и удалить нужные сценарии</div>
+          </div>
+        </button>
+        <button class="settings-btn" id="resetSettingsBtn">
+          <span class="sb-icon" aria-hidden="true">↺</span>
+          <div style="flex:1">
+            <div class="sb-label">Сбросить настройки</div>
+            <div class="sb-desc">Вернуть все параметры к значениям по умолчанию</div>
+          </div>
+        </button>
+        <button class="settings-btn danger" id="clearAllBtn">
+          <span class="sb-icon" aria-hidden="true">🗑️</span>
+          <div style="flex:1">
+            <div class="sb-label">Очистить все данные</div>
+            <div class="sb-desc">Удалить и сценарии, и настройки приложения</div>
+          </div>
+        </button>
+      </div>
+
+      <div class="settings-footer">
+        <span class="footer-emoji" id="footerEmoji" aria-hidden="true">✒️</span> Сценарист · Версия 1.1 Бета<br>
+        Разработчик: DarkEye
+      </div>
+
+    </div>
+  </div>
+
+  <!-- СПРАВОЧНИК -->
+  <div class="screen" id="handbookScreen">
+    <div class="header">
+      <button class="icon-btn" id="handbookBack" aria-label="Назад">‹</button>
+      <div class="header-title centered">Справочник</div>
+      <button class="icon-btn" id="handbookSearchToggle" aria-label="Поиск по справочнику">🔍</button>
+    </div>
+    <div class="search-bar" id="handbookSearchBar">
+      <input type="text" id="handbookSearchInput" placeholder="Поиск по справочнику..." aria-label="Поиск по справочнику">
+      <button class="icon-btn" id="handbookSearchClose" aria-label="Закрыть поиск">✕</button>
+    </div>
+    <div class="handbook-tabs" id="handbookTabs"></div>
+    <div class="handbook-content" id="handbookContent"></div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent">
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   СЦЕНАРИСТ v1.1 Бета
+   Разработчик: DarkEye
+   ============================================================ */
+
+'use strict';
+
+const DEV_CHANNEL_URL = 'https://t.me/DarkEyeDev';
+const DEV_CHANNEL_INTENT = 'intent://t.me/DarkEyeDev#Intent;scheme=https;package=org.telegram.messenger;S.browser_fallback_url=' + encodeURIComponent('https://t.me/DarkEyeDev') + ';end';
+const DEV_NAME = 'DarkEye';
+const CHANNEL_NAME = 'DarkEye || Developer';
+
+const STORAGE_KEY = 'screenwriter_projects_v1b';
+const SETTINGS_KEY = 'screenwriter_settings_v3';
+const EMOJI_INDEX_KEY = 'screenwriter_emoji_index_v1';
+
+const MODAL_VERTICAL_BIAS = 0.38;
+
+const EMOJI_CYCLE = ['✒️', '📕', '🎬', '📼', '🎥'];
+
+const WORDS_PER_PAGE = 220;
+const WORDS_PER_MINUTE = 150;
+const UNDO_DEBOUNCE_MS = 450;
+const STATS_DEBOUNCE_MS = 150;
+const HANDBOOK_SEARCH_DEBOUNCE_MS = 180;
+const LONG_PRESS_MS = 500;
+
+const DEFAULT_SETTINGS = {
+  animations: false,
+  effects: false,
+  toasts: true,
+  tips: true,
+  fontSize: 15,
+  wordGoal: 0
+};
+
+let settings = { ...DEFAULT_SETTINGS };
+
+const state = {
+  projects: [],
+  currentId: null,
+  dirty: false,
+  undoStack: [],
+  redoStack: [],
+  focusMode: false,
+  previewMode: false,
+  handbookTab: 'about',
+  handbookSearch: '',
+  pomodoro: { running:false, timeLeft:25*60, interval:null, total:25*60 },
+  modalOpening: false,
+  goalCelebrated: false
+};
+
+const $ = id => document.getElementById(id);
+const els = {
+  libraryScreen: $('libraryScreen'),
+  editorScreen: $('editorScreen'),
+  handbookScreen: $('handbookScreen'),
+  settingsScreen: $('settingsScreen'),
+  libraryList: $('libraryList'),
+  editorTitle: $('editorTitle'),
+  scriptInput: $('scriptInput'),
+  previewContainer: $('previewContainer'),
+  hintBar: $('hintBar'),
+  hintText: $('hintText'),
+  modalOverlay: $('modalOverlay'),
+  modalContent: $('modalContent'),
+  modalBody: $('modalBody'),
+  toast: $('toast'),
+  searchBar: $('searchBar'),
+  searchInput: $('searchInput'),
+  statWords: $('statWords'),
+  statPages: $('statPages'),
+  statScenes: $('statScenes'),
+  statSave: $('statSave'),
+  statSaveIcon: $('statSaveIcon'),
+  statSaveBox: $('statSaveBox'),
+  goalBar: $('goalBar'),
+  goalProgressFill: $('goalProgressFill'),
+  goalProgressText: $('goalProgressText'),
+  handbookTabs: $('handbookTabs'),
+  handbookContent: $('handbookContent'),
+  handbookSearchBar: $('handbookSearchBar'),
+  handbookSearchInput: $('handbookSearchInput'),
+  animToggle: $('animToggle'),
+  animToggleRow: $('animToggleRow'),
+  effectsToggle: $('effectsToggle'),
+  effectsToggleRow: $('effectsToggleRow'),
+  toastsToggle: $('toastsToggle'),
+  toastsToggleRow: $('toastsToggleRow'),
+  tipsToggle: $('tipsToggle'),
+  tipsToggleRow: $('tipsToggleRow'),
+  fontSizeSlider: $('fontSizeSlider'),
+  fontSizeValue: $('fontSizeValue'),
+  wordGoalBtn: $('wordGoalBtn'),
+  wordGoalDesc: $('wordGoalDesc'),
+  appEmoji: $('appEmoji'),
+  footerEmoji: $('footerEmoji')
+};
+
+/* ============ ЦИКЛИЧЕСКИЙ ЭМОДЗИ ============ */
+function pickNextEmoji() {
+  let idx = 0;
+  try {
+    const raw = localStorage.getItem(EMOJI_INDEX_KEY);
+    const parsed = raw !== null ? parseInt(raw, 10) : 0;
+    idx = (!isNaN(parsed) && parsed >= 0) ? parsed : 0;
+  } catch(e) { idx = 0; }
+  const emoji = EMOJI_CYCLE[idx % EMOJI_CYCLE.length];
+  const nextIdx = (idx + 1) % EMOJI_CYCLE.length;
+  try { localStorage.setItem(EMOJI_INDEX_KEY, String(nextIdx)); } catch(e) {}
+  return emoji;
+}
+
+function applyCycledEmoji() {
+  const emoji = pickNextEmoji();
+  if (els.appEmoji) els.appEmoji.textContent = emoji;
+  if (els.footerEmoji) els.footerEmoji.textContent = emoji;
+}
+
+/* ============ НАСТРОЙКИ ============ */
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      settings = { ...DEFAULT_SETTINGS, ...parsed };
+    }
+  } catch(e) {}
+}
+
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e) {}
+}
+
+function applySettings() {
+  document.body.classList.toggle('animations-enabled', !!settings.animations);
+  document.body.classList.toggle('effects-enabled', !!settings.effects);
+  document.body.classList.toggle('hide-tips', !settings.tips);
+  document.documentElement.style.setProperty('--editor-font-size', (settings.fontSize || 15) + 'px');
+}
+
+function renderSettings() {
+  if (els.animToggle) els.animToggle.classList.toggle('on', !!settings.animations);
+  if (els.effectsToggle) els.effectsToggle.classList.toggle('on', !!settings.effects);
+  if (els.toastsToggle) els.toastsToggle.classList.toggle('on', !!settings.toasts);
+  if (els.tipsToggle) els.tipsToggle.classList.toggle('on', !!settings.tips);
+  if (els.animToggleRow) els.animToggleRow.setAttribute('aria-checked', String(!!settings.animations));
+  if (els.effectsToggleRow) els.effectsToggleRow.setAttribute('aria-checked', String(!!settings.effects));
+  if (els.toastsToggleRow) els.toastsToggleRow.setAttribute('aria-checked', String(!!settings.toasts));
+  if (els.tipsToggleRow) els.tipsToggleRow.setAttribute('aria-checked', String(!!settings.tips));
+  if (els.fontSizeSlider) els.fontSizeSlider.value = settings.fontSize || 15;
+  if (els.fontSizeValue) els.fontSizeValue.textContent = (settings.fontSize || 15) + 'px';
+  if (els.wordGoalDesc) {
+    els.wordGoalDesc.textContent = settings.wordGoal > 0
+      ? `Цель: ${settings.wordGoal} слов`
+      : 'Не задана — нажмите, чтобы установить';
+  }
+}
+
+function openSettings() {
+  showScreen('settings');
+  renderSettings();
+}
+
+function toggleAnimations() {
+  settings.animations = !settings.animations;
+  saveSettings(); applySettings(); renderSettings();
+  if (settings.toasts) toast(settings.animations ? 'Анимации включены' : 'Анимации выключены');
+}
+function toggleEffects() {
+  settings.effects = !settings.effects;
+  saveSettings(); applySettings(); renderSettings();
+  if (settings.toasts) toast(settings.effects ? 'Эффекты включены' : 'Эффекты выключены');
+}
+function toggleToasts() {
+  settings.toasts = !settings.toasts;
+  saveSettings(); renderSettings();
+  if (settings.toasts) toast('Тосты включены');
+}
+function toggleTips() {
+  settings.tips = !settings.tips;
+  saveSettings(); applySettings(); renderSettings();
+  if (settings.toasts) toast(settings.tips ? 'Советы включены' : 'Советы выключены');
+}
+
+function setFontSize(px) {
+  settings.fontSize = Math.max(13, Math.min(20, parseInt(px, 10) || 15));
+  saveSettings();
+  applySettings();
+  if (els.fontSizeValue) els.fontSizeValue.textContent = settings.fontSize + 'px';
+}
+
+/* ============ ЦЕЛЬ ПО СЛОВАМ ============ */
+function showWordGoalSetting() {
+  const current = settings.wordGoal || 0;
+  openModal(`
+    <h3>Цель по словам</h3>
+    <p style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;text-align:center">
+      Установите цель — прогресс будет виден в редакторе.<br>
+      Введите <b>0</b>, чтобы отключить.
+    </p>
+    <input class="modal-input" id="goalInput" type="number" inputmode="numeric" min="0" max="999999" value="${current}" placeholder="Например, 5000" aria-label="Цель по словам">
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      ${[1000, 3000, 5000, 10000].map(v => `<button class="tool-chip" data-quick="${v}" type="button" style="flex:1;justify-content:center">${v}</button>`).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="goalOk">Сохранить</button>
+    </div>
+  `);
+  safeSelect($('goalInput'));
+
+  els.modalBody.querySelectorAll('[data-quick]').forEach(btn => {
+    btn.onclick = () => { $('goalInput').value = btn.dataset.quick; };
+  });
+
+  $('goalOk').onclick = () => {
+    const v = Math.max(0, parseInt($('goalInput').value, 10) || 0);
+    settings.wordGoal = v;
+    state.goalCelebrated = false;
+    saveSettings();
+    renderSettings();
+    updateGoalBar();
+    closeModal();
+    if (settings.toasts) {
+      toast(v > 0 ? `✓ Цель: ${v} слов` : '✓ Цель отключена');
+    }
+  };
+  $('goalInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('goalOk').click(); });
+}
+
+function updateGoalBar() {
+  if (!els.goalBar) return;
+  if (!settings.wordGoal || settings.wordGoal <= 0) {
+    els.goalBar.classList.remove('active');
+    return;
+  }
+  els.goalBar.classList.add('active');
+  const words = countWords(els.scriptInput.value);
+  const goal = settings.wordGoal;
+  const pct = Math.min(100, Math.round(words / goal * 100));
+  if (els.goalProgressFill) {
+    els.goalProgressFill.style.width = pct + '%';
+    els.goalProgressFill.classList.toggle('done', pct >= 100);
+  }
+  if (els.goalProgressText) {
+    els.goalProgressText.textContent = `${words} / ${goal} (${pct}%)`;
+  }
+  if (pct >= 100 && !state.goalCelebrated) {
+    state.goalCelebrated = true;
+    if (settings.toasts) toast('🎉 Цель достигнута! Отличная работа!', 3500);
+    if (navigator.vibrate) navigator.vibrate([100, 60, 100]);
+  }
+}
+
+/* ============ УДАЛЕНИЕ ============ */
+function deleteAllScenarios() {
+  if (!state.projects.length) {
+    if (settings.toasts) toast('Нет сценариев для удаления');
+    return;
+  }
+  openModal(`
+    <h3>Удалить все сценарии?</h3>
+    <p style="font-size:14px;color:var(--text-dim);line-height:1.6;margin-bottom:20px;text-align:center">
+      Все сценарии (${state.projects.length}) будут <b style="color:var(--danger)">удалены безвозвратно</b>. Настройки приложения сохранятся.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-danger" id="delAllOk">Удалить всё</button>
+    </div>
+  `);
+  $('delAllOk').onclick = () => {
+    state.projects = [];
+    state.currentId = null;
+    state.dirty = false;
+    saveProjects();
+    closeModal();
+    renderLibrary();
+    if (settings.toasts) toast('✓ Все сценарии удалены');
+  };
+}
+
+function deleteSomeScenarios() {
+  if (!state.projects.length) {
+    if (settings.toasts) toast('Нет сценариев для удаления');
+    return;
+  }
+  const sorted = [...state.projects].sort((a,b) => b.updatedAt - a.updatedAt);
+
+  openModal(`
+    <h3>Выберите сценарии</h3>
+    <div class="select-actions-row">
+      <button id="selAll" type="button">Выбрать все</button>
+      <button id="selNone" type="button">Снять все</button>
+    </div>
+    <div class="select-list" id="selectList">
+      ${sorted.map(p => `
+        <label class="select-item">
+          <input type="checkbox" class="select-check" data-id="${p.id}">
+          <div class="select-info">
+            <div class="select-title">${escapeHtml(p.title)}</div>
+            <div class="select-meta">${formatDate(p.updatedAt)} · ${countWords(p.text || '')} слов</div>
+          </div>
+        </label>
+      `).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-danger" id="delSomeOk" disabled>Удалить выбранные</button>
+    </div>
+  `);
+
+  const okBtn = $('delSomeOk');
+  const checks = document.querySelectorAll('.select-check');
+  const updateBtn = () => {
+    const count = Array.from(checks).filter(c => c.checked).length;
+    okBtn.disabled = count === 0;
+    okBtn.textContent = count > 0 ? `Удалить (${count})` : 'Удалить выбранные';
+  };
+  checks.forEach(c => c.addEventListener('change', updateBtn));
+
+  const selAllBtn = $('selAll');
+  const selNoneBtn = $('selNone');
+  if (selAllBtn) selAllBtn.onclick = () => { checks.forEach(c => c.checked = true); updateBtn(); };
+  if (selNoneBtn) selNoneBtn.onclick = () => { checks.forEach(c => c.checked = false); updateBtn(); };
+
+  $('delSomeOk').onclick = () => {
+    const ids = Array.from(checks).filter(c => c.checked).map(c => c.dataset.id);
+    if (!ids.length) return;
+    state.projects = state.projects.filter(p => !ids.includes(p.id));
+    if (state.currentId && ids.includes(state.currentId)) state.currentId = null;
+    saveProjects();
+    closeModal();
+    renderLibrary();
+    if (settings.toasts) toast(`✓ Удалено: ${ids.length}`);
+  };
+}
+
+function resetSettings() {
+  openModal(`
+    <h3>Сбросить настройки?</h3>
+    <p style="font-size:14px;color:var(--text-dim);line-height:1.6;margin-bottom:20px;text-align:center">
+      Все параметры внешнего вида и интерфейса вернутся к значениям по умолчанию.
+    </p>
+    <p style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:20px;text-align:center;padding:10px;background:rgba(93,173,226,.08);border-radius:10px">
+      💡 Сценарии не пострадают — удалятся только настройки.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="resetOk">Сбросить</button>
+    </div>
+  `);
+  $('resetOk').onclick = () => {
+    settings = { ...DEFAULT_SETTINGS };
+    saveSettings(); applySettings(); renderSettings();
+    updateGoalBar();
+    closeModal();
+    if (settings.toasts) toast('✓ Настройки сброшены');
+  };
+}
+
+function clearAllData() {
+  openModal(`
+    <h3>Очистить все данные?</h3>
+    <p style="font-size:14px;color:var(--text-dim);line-height:1.6;margin-bottom:20px;text-align:center">
+      Все сценарии и настройки приложения будут <b style="color:var(--danger)">удалены безвозвратно</b>. Отменить это действие невозможно.
+    </p>
+    <p style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:20px;text-align:center;padding:10px;background:rgba(255,87,87,.08);border-radius:10px">
+      💡 Совет: если хотите сохранить сценарии — экспортируйте их через «Поделиться .txt» перед очисткой.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-danger" id="clearAllOk">Удалить всё</button>
+    </div>
+  `);
+  $('clearAllOk').onclick = () => {
+    state.projects = [];
+    state.currentId = null;
+    state.dirty = false;
+    state.undoStack = [];
+    state.redoStack = [];
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SETTINGS_KEY);
+    } catch(e) {}
+    settings = { ...DEFAULT_SETTINGS };
+    applySettings(); renderSettings(); updateGoalBar();
+    closeModal();
+    showScreen('library');
+    renderLibrary();
+    if (settings.toasts) toast('✓ Все данные удалены', 2600);
+  };
+}
+
+/* ============ БЕЗОПАСНЫЙ FOCUS ============ */
+function safeFocus(el) {
+  if (!el) return;
+  try { el.focus({ preventScroll: true }); }
+  catch(e) { try { el.focus(); } catch(_) {} }
+}
+function safeSelect(el) {
+  if (!el) return;
+  setTimeout(() => {
+    safeFocus(el);
+    try { el.select(); } catch(e) {}
+  }, 60);
+}
+
+/* ============ НАЖАТИЯ ============ */
+function setupPressFeedback() {
+  const pressableSelector = '.icon-btn, .tool-chip, .btn, .tool-btn, .fab, .settings-btn, .toggle-row, .hb-tab, .hb-acc-header, .project-card, .stat-box, .hb-link-btn, .select-item, .template-item, .scene-nav-item';
+
+  function addPressed(target) {
+    if (!target) return;
+    const t = target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA') return;
+    target.classList.add('pressed');
+  }
+  function removePressed(target) {
+    if (!target) return;
+    setTimeout(() => target.classList.remove('pressed'), 120);
+  }
+
+  document.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const target = e.target && e.target.closest ? e.target.closest(pressableSelector) : null;
+    addPressed(target);
+  }, { passive: true });
+
+  document.addEventListener('pointerup', e => {
+    const target = e.target && e.target.closest ? e.target.closest(pressableSelector) : null;
+    removePressed(target);
+    document.querySelectorAll('.pressed').forEach(el => {
+      if (el !== target) setTimeout(() => el.classList.remove('pressed'), 120);
+    });
+  }, { passive: true });
+
+  document.addEventListener('pointercancel', () => {
+    document.querySelectorAll('.pressed').forEach(el => {
+      setTimeout(() => el.classList.remove('pressed'), 120);
+    });
+  }, { passive: true });
+}
+
+/* ============ КЛАВИАТУРА ============ */
+let baselineHeight = window.innerHeight;
+
+function resetPageScroll() {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
+function setupKeyboardHandling() {
+  const appEl = $('app');
+  const vv = window.visualViewport;
+
+  const update = () => {
+    const vvHeight = vv ? vv.height : window.innerHeight;
+    const layoutHeight = document.documentElement.clientHeight || window.innerHeight;
+    const isKeyboardOpen =
+      (layoutHeight - vvHeight) > 150 || (baselineHeight - vvHeight) > 150;
+    document.body.classList.toggle('keyboard-open', isKeyboardOpen);
+
+    // Приложение всегда равно видимой области и не уезжает
+    appEl.style.setProperty('--app-h', vvHeight + 'px');
+    appEl.style.transform = vv && vv.offsetTop
+      ? `translateY(${vv.offsetTop}px)` : '';
+    resetPageScroll();
+  };
+
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => { baselineHeight = window.innerHeight; update(); }, 500);
+  });
+  if (vv) {
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+  }
+  window.addEventListener('resize', update);
+  window.addEventListener('scroll', resetPageScroll, { passive: true });
+  if (els.scriptInput) {
+    els.scriptInput.addEventListener('focus', () => {
+      setTimeout(update, 50);
+      setTimeout(update, 300);
+    });
+    els.scriptInput.addEventListener('blur', () => setTimeout(update, 100));
+  }
+  update();
+}
+
+/* ============ ХРАНИЛИЩЕ ============ */
+function loadProjects() {
+  try { state.projects = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch(e) { state.projects = []; }
+}
+function saveProjects() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.projects)); return true; }
+  catch(e) { if (settings.toasts) toast('Ошибка сохранения'); return false; }
+}
+function getCurrent() { return state.projects.find(p => p.id === state.currentId); }
+
+/* ============ TOAST ============ */
+let toastTimer;
+function toast(msg, dur = 2200) {
+  if (!settings.toasts) return;
+  els.toast.textContent = msg;
+  els.toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => els.toast.classList.remove('show'), dur);
+}
+
+/* ============ ЭКРАНЫ ============ */
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if (name === 'library') els.libraryScreen.classList.add('active');
+  else if (name === 'editor') els.editorScreen.classList.add('active');
+  else if (name === 'handbook') els.handbookScreen.classList.add('active');
+  else if (name === 'settings') els.settingsScreen.classList.add('active');
+}
+
+/* ============ БИБЛИОТЕКА ============ */
+function renderLibrary(filter = '') {
+  const q = filter.trim().toLowerCase();
+  const items = state.projects
+    .filter(p => !q || p.title.toLowerCase().includes(q))
+    .sort((a,b) => b.updatedAt - a.updatedAt);
+
+  if (!items.length) {
+    els.libraryList.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">${q ? '🔍' : '🎬'}</div>
+        <h2>${q ? 'Ничего не найдено' : 'Пока нет сценариев'}</h2>
+        <p>${q ? 'Попробуйте изменить запрос' : 'Нажмите + внизу, чтобы создать первый сценарий'}</p>
+      </div>`;
+    return;
+  }
+
+  els.libraryList.innerHTML = items.map(p => {
+    const words = countWords(p.text || '');
+    return `
+      <div class="project-card" data-id="${p.id}" role="button" tabindex="0">
+        <div class="project-icon" aria-hidden="true">${getProjectEmoji(p)}</div>
+        <div class="project-info">
+          <div class="project-name">${escapeHtml(p.title)}</div>
+          <div class="project-meta">${formatDate(p.updatedAt)} · ${words} слов</div>
+        </div>
+        <div style="color:var(--text-dim);font-size:20px" aria-hidden="true">›</div>
+      </div>`;
+  }).join('');
+
+  els.libraryList.querySelectorAll('.project-card').forEach(card => {
+    attachCardHandlers(card);
+  });
+}
+
+function attachCardHandlers(card) {
+  let pressTimer = null;
+  let longPressFired = false;
+  let startX = 0, startY = 0;
+
+  const clearTimer = () => {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+    card.classList.remove('long-pressing');
+  };
+
+  const triggerLongPress = () => {
+    longPressFired = true;
+    if (navigator.vibrate) navigator.vibrate(20);
+    card.classList.remove('long-pressing');
+    showProjectActions(card.dataset.id);
+  };
+
+  card.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    longPressFired = false;
+    startX = e.clientX; startY = e.clientY;
+    card.classList.add('long-pressing');
+    pressTimer = setTimeout(triggerLongPress, LONG_PRESS_MS);
+  });
+
+  card.addEventListener('pointermove', e => {
+    if (!pressTimer) return;
+    const dx = Math.abs(e.clientX - startX);
+    const dy = Math.abs(e.clientY - startY);
+    if (dx > 10 || dy > 10) clearTimer();
+  });
+
+  card.addEventListener('pointerup', clearTimer);
+  card.addEventListener('pointercancel', clearTimer);
+  card.addEventListener('pointerleave', clearTimer);
+
+  card.addEventListener('click', e => {
+    if (longPressFired) { e.preventDefault(); e.stopPropagation(); longPressFired = false; return; }
+    openProject(card.dataset.id);
+  });
+
+  card.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openProject(card.dataset.id);
+    }
+  });
+}
+
+function showProjectActions(id) {
+  const p = state.projects.find(x => x.id === id);
+  if (!p) return;
+
+  openModal(`
+    <h3>${escapeHtml(p.title)}</h3>
+    <p style="font-size:12px;color:var(--text-dim);text-align:center;margin-bottom:16px">
+      ${formatDate(p.updatedAt)} · ${countWords(p.text || '')} слов
+    </p>
+    <div class="ctx-actions">
+      <button class="tool-btn" id="pOpen"><span class="t-emoji">📖</span> Открыть</button>
+      <button class="tool-btn" id="pRename"><span class="t-emoji">✏️</span> Переименовать</button>
+      <button class="tool-btn" id="pDuplicate"><span class="t-emoji">📋</span> Дублировать</button>
+      <button class="tool-btn" id="pShare"><span class="t-emoji">📤</span> Поделиться</button>
+      <button class="tool-btn" id="pCopy"><span class="t-emoji">📎</span> Копировать</button>
+      <button class="tool-btn" id="pDelete" style="color:var(--danger)"><span class="t-emoji">🗑️</span> Удалить</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
+    </div>
+  `);
+
+  $('pOpen').onclick = () => { closeModal(); setTimeout(() => openProject(id), 200); };
+  $('pRename').onclick = () => { closeModal(); setTimeout(() => renameProjectById(id), 320); };
+  $('pDuplicate').onclick = () => { duplicateProjectById(id); closeModal(); };
+  $('pShare').onclick = () => { shareScriptById(id, 'txt'); closeModal(); };
+  $('pCopy').onclick = () => {
+    const proj = state.projects.find(x => x.id === id);
+    if (proj) copyToClipboard(proj.text || '', 'Текст скопирован в буфер');
+    closeModal();
+  };
+  $('pDelete').onclick = () => { closeModal(); setTimeout(() => confirmDeleteById(id), 320); };
+}
+
+function getProjectEmoji(p) {
+  const t = (p.text || '').toLowerCase();
+  if (t.includes('романт') || t.includes('любов')) return '💕';
+  if (t.includes('ужас') || t.includes('хоррор')) return '👻';
+  if (t.includes('комед')) return '😂';
+  if (t.includes('экшен') || t.includes('боев')) return '💥';
+  if (t.includes('фантаст') || t.includes('космос')) return '🚀';
+  return '🎬';
+}
+
+function formatDate(ts) {
+  const d = new Date(ts), now = new Date(), diff = now - d;
+  const m = Math.floor(diff/60000), h = Math.floor(diff/3600000), dd = Math.floor(diff/86400000);
+  if (m < 1) return 'только что';
+  if (m < 60) return m + ' мин назад';
+  if (h < 24) return h + ' ч назад';
+  if (dd < 7) return dd + ' дн назад';
+  return d.toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============ ПРОЕКТЫ ============ */
+function createProject(title = 'Новый сценарий', template = 'blank') {
+  const proj = {
+    id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    title: title.trim() || 'Новый сценарий',
+    text: getTemplateText(template),
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  state.projects.push(proj);
+  saveProjects();
+  return proj;
+}
+
+function getTemplateText(template) {
+  switch(template) {
+    case 'short':
+      return 'ИНТ. ЛОКАЦИЯ — ДЕНЬ\n\nОписание действия. Что видит зритель?\n\nГЕРОЙ\n(ремарка)\nПервая реплика героя.\n\nПЕРЕХОД:\n';
+    case 'episode':
+      return 'ТИЗЕР\n\nНАТ. ЛОКАЦИЯ — НОЧЬ\n\nКороткая сцена-крючок.\n\nПЕРЕХОД:\n\n\nАКТ 1\n\nИНТ. ЛОКАЦИЯ — ДЕНЬ\n\nОсновное действие.\n\nГЕРОЙ\nРеплика.\n\nПЕРЕХОД:\n';
+    case 'ad':
+      return 'ИНТ. ЛОКАЦИЯ — ДЕНЬ\n\nПродукт/герой в кадре.\n\nГОЛОС ЗА КАДРОМ\nСлоган или текст.\n\nПЕРЕХОД:\n\nЗАТЕМНЕНИЕ:\n';
+    default:
+      return '';
+  }
+}
+
+function openProject(id) {
+  state.currentId = id;
+  const p = getCurrent();
+  if (!p) return;
+  els.editorTitle.textContent = p.title;
+  els.scriptInput.value = p.text || '';
+  state.dirty = false;
+  state.undoStack = [p.text || ''];
+  state.redoStack = [];
+  state.goalCelebrated = false;
+  clearTimeout(undoDebounceTimer);
+  clearTimeout(statsDebounceTimer);
+  state.previewMode = false;
+  els.previewContainer.style.display = 'none';
+  els.scriptInput.style.display = 'block';
+  $('previewBtn').classList.remove('active');
+  updateStatsBar();
+  updateGoalBar();
+  setHint('💡', 'Нажмите на элемент выше или начните печатать');
+  showScreen('editor');
+  setTimeout(() => {
+    resetPageScroll();
+    safeFocus(els.scriptInput);
+    setTimeout(resetPageScroll, 120);
+  }, 450);
+}
+
+function updateCurrentProject() {
+  const p = getCurrent();
+  if (!p) return;
+  p.text = els.scriptInput.value;
+  p.updatedAt = Date.now();
+  state.dirty = true;
+  updateSaveIndicator();
+  scheduleStatsUpdate();
+  updateGoalBar();
+}
+
+function saveCurrentProject(silent = false) {
+  const p = getCurrent();
+  if (!p) return;
+  p.text = els.scriptInput.value;
+  p.updatedAt = Date.now();
+  saveProjects();
+  state.dirty = false;
+  updateSaveIndicator();
+  if (!silent) toast('✓ Сохранено');
+}
+
+/* ============ СТАТИСТИКА ============ */
+let statsDebounceTimer;
+function scheduleStatsUpdate() {
+  clearTimeout(statsDebounceTimer);
+  statsDebounceTimer = setTimeout(() => {
+    updateStatsCounts();
+    updateGoalBar();
+  }, STATS_DEBOUNCE_MS);
+}
+
+function updateStatsCounts() {
+  const text = els.scriptInput.value;
+  els.statWords.textContent = countWords(text);
+  els.statPages.textContent = '~' + estimatePages(text);
+  els.statScenes.textContent = countScenes(text);
+}
+
+function updateSaveIndicator() {
+  if (state.dirty) {
+    els.statSave.textContent = 'Изменения';
+    els.statSaveIcon.textContent = '●';
+    els.statSaveBox.classList.remove('save-ok');
+    els.statSaveBox.classList.add('save-dirty');
+  } else {
+    els.statSave.textContent = 'Сохранено';
+    els.statSaveIcon.textContent = '✓';
+    els.statSaveBox.classList.remove('save-dirty');
+    els.statSaveBox.classList.add('save-ok');
+  }
+}
+
+function updateStatsBar() {
+  updateStatsCounts();
+  updateSaveIndicator();
+}
+
+/* ============ HINT BAR ============ */
+let hintTimer;
+function setHint(icon, text, dur = 5000) {
+  if (!settings.tips) return;
+  const iconEl = els.hintBar.querySelector('.hint-icon');
+  iconEl.textContent = icon;
+  if (settings.animations) {
+    iconEl.style.transform = 'scale(1.2)';
+    setTimeout(() => { iconEl.style.transform = 'scale(1)'; }, 220);
+  }
+  els.hintText.innerHTML = text;
+  clearTimeout(hintTimer);
+  if (dur) hintTimer = setTimeout(() => {
+    const ic = els.hintBar.querySelector('.hint-icon');
+    ic.textContent = '💡';
+    if (settings.animations) {
+      ic.style.transform = 'scale(1.2)';
+      setTimeout(() => { ic.style.transform = 'scale(1)'; }, 220);
+    }
+    els.hintText.textContent = 'Нажмите на элемент выше или начните печатать';
+  }, dur);
+}
+
+/* ============ ВСТАВКА ЭЛЕМЕНТОВ ============ */
+const ELEMENTS = {
+  scene: {
+    text: '\n\nИНТ. ЛОКАЦИЯ — ДЕНЬ\n\n',
+    placeholder: 'ЛОКАЦИЯ',
+    hint: ['🎬', 'Заголовок сцены вставлен. Измените <b>локацию</b> и <b>время суток</b>.'],
+    toast: '🎬 Заголовок сцены'
+  },
+  action: {
+    text: '\n\nОпишите, что происходит на экране.\n\n',
+    placeholder: 'Опишите, что происходит на экране.',
+    hint: ['📝', 'Действие — это то, что <b>видит</b> зритель. Пишите в настоящем времени.'],
+    toast: '📝 Описание действия'
+  },
+  character: {
+    text: '\n\nГЕРОЙ\n',
+    placeholder: 'ГЕРОЙ',
+    hint: ['👤', 'Имя персонажа пишется <b>ЗАГЛАВНЫМИ</b> перед репликой.'],
+    toast: '👤 Персонаж'
+  },
+  dialog: {
+    text: '\nРеплика персонажа.\n',
+    placeholder: 'Реплика персонажа.',
+    hint: ['💬', 'Реплика идёт <b>сразу после имени персонажа</b>, без пустой строки.'],
+    toast: '💬 Реплика'
+  },
+  parenthetical: {
+    text: '(шёпотом)\n',
+    placeholder: 'шёпотом',
+    hint: ['( )', 'Ремарка уточняет, <b>как</b> персонаж говорит реплику.'],
+    toast: '( ) Ремарка'
+  },
+  transition: {
+    text: '\n\nПЕРЕХОД:\n\n',
+    placeholder: 'ПЕРЕХОД',
+    hint: ['➡️', 'Переход обозначает смену сцены: <b>ПЕРЕХОД</b>, <b>ЗАТЕМНЕНИЕ</b>, <b>РАЗРЕЗ</b>.'],
+    toast: '➡️ Переход'
+  }
+};
+
+function getUsedCharacterNames() {
+  const text = els.scriptInput.value;
+  const names = new Set();
+  text.split('\n').forEach(line => {
+    const t = line.trim();
+    if (isCharacterName(t)) names.add(t);
+  });
+  return Array.from(names);
+}
+
+function insertElement(type) {
+  const el = ELEMENTS[type];
+  if (!el) return;
+
+  if (type === 'character') {
+    const names = getUsedCharacterNames();
+    if (names.length > 0) {
+      showCharacterPicker(el, names);
+      return;
+    }
+  }
+
+  doInsertElement(type, el.text, el.placeholder);
+  const e = ELEMENTS[type];
+  setHint(e.hint[0], e.hint[1], 6000);
+  toast(e.toast, 1400);
+  if (navigator.vibrate) navigator.vibrate(10);
+}
+
+function showCharacterPicker(el, names) {
+  openModal(`
+    <h3>Кто говорит?</h3>
+    <div style="max-height:40vh;overflow-y:auto;border:1px solid var(--border);border-radius:14px;margin-bottom:16px">
+      ${names.map(n => `
+        <div class="select-item" data-name="${escapeHtml(n)}" role="button" tabindex="0" style="justify-content:space-between">
+          <span style="font-weight:600;letter-spacing:.5px">${escapeHtml(n)}</span>
+          <span style="color:var(--text-dim);font-size:11px">использовать</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="cpNew">Новый персонаж</button>
+    </div>
+  `);
+
+  els.modalBody.querySelectorAll('.select-item').forEach(item => {
+    const handler = () => {
+      closeModal();
+      setTimeout(() => {
+        doInsertElement('character', `\n\n${item.dataset.name}\n`, null);
+        const e = ELEMENTS.character;
+        setHint(e.hint[0], e.hint[1], 6000);
+        toast(`👤 ${item.dataset.name}`, 1400);
+      }, 200);
+    };
+    item.addEventListener('click', handler);
+    item.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); }
+    });
+  });
+
+  $('cpNew').onclick = () => {
+    closeModal();
+    setTimeout(() => {
+      doInsertElement('character', el.text, el.placeholder);
+      const e = ELEMENTS.character;
+      setHint(e.hint[0], e.hint[1], 6000);
+      toast(e.toast, 1400);
+    }, 200);
+  };
+}
+
+function doInsertElement(type, insert, placeholder) {
+  if (state.previewMode) {
+    if (state.dirty) saveCurrentProject(true);
+    togglePreview();
+  }
+
+  const ta = els.scriptInput;
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const before = ta.value.slice(0, start);
+  const after = ta.value.slice(end);
+
+  ta.value = before + insert + after;
+  safeFocus(ta);
+
+  if (placeholder) {
+    const full = before + insert;
+    const idx = full.indexOf(placeholder, start);
+    if (idx >= 0) {
+      try { ta.setSelectionRange(idx, idx + placeholder.length); } catch(e) {}
+    } else {
+      const newPos = start + insert.length;
+      try { ta.setSelectionRange(newPos, newPos); } catch(e) {}
+    }
+  } else {
+    const newPos = start + insert.length;
+    try { ta.setSelectionRange(newPos, newPos); } catch(e) {}
+  }
+
+  pushUndoNow();
+  updateCurrentProject();
+}
+
+/* ============ UNDO/REDO ============ */
+let undoDebounceTimer;
+
+function scheduleUndo() {
+  clearTimeout(undoDebounceTimer);
+  undoDebounceTimer = setTimeout(pushUndo, UNDO_DEBOUNCE_MS);
+}
+
+function pushUndo() {
+  const val = els.scriptInput.value;
+  if (state.undoStack[state.undoStack.length - 1] !== val) {
+    state.undoStack.push(val);
+    if (state.undoStack.length > 100) state.undoStack.shift();
+    state.redoStack = [];
+  }
+}
+
+function pushUndoNow() {
+  clearTimeout(undoDebounceTimer);
+  pushUndo();
+}
+
+function undo() {
+  clearTimeout(undoDebounceTimer);
+  pushUndo();
+  if (state.undoStack.length <= 1) return toast('Нечего отменять');
+  const current = state.undoStack.pop();
+  state.redoStack.push(current);
+  els.scriptInput.value = state.undoStack[state.undoStack.length - 1];
+  updateCurrentProject();
+  updateStatsBar();
+  updateGoalBar();
+  toast('↶ Отменено');
+}
+
+function redo() {
+  clearTimeout(undoDebounceTimer);
+  if (!state.redoStack.length) return toast('Нечего повторять');
+  const val = state.redoStack.pop();
+  state.undoStack.push(val);
+  els.scriptInput.value = val;
+  updateCurrentProject();
+  updateStatsBar();
+  updateGoalBar();
+  toast('↷ Повторено');
+}
+
+/* ============ СТАТИСТИКА ТЕКСТА ============ */
+function countWords(text) { return (text.trim().match(/[\wа-яёА-ЯЁ]+/gi) || []).length; }
+function countChars(text) { return text.length; }
+function countScenes(text) { return (text.match(/^\s*(ИНТ|НАТ|INT|EXT)\.?\s/gmi) || []).length; }
+function estimatePages(text) { return Math.max(1, Math.round(countWords(text) / WORDS_PER_PAGE)); }
+
+/* ============ ПРЕВЬЮ-РЕНДЕР ============ */
+function renderPreview(text) {
+  if (!text.trim()) {
+    return '<div class="pv-empty">Сценарий пуст.<br>Вернитесь в редактор и напишите что-нибудь ✍️</div>';
+  }
+  const lines = text.split('\n');
+  let html = '';
+  let mode = 'action';
+
+  for (let raw of lines) {
+    const t = raw.trim();
+    if (!t) { html += '<div class="pv-blank"></div>'; mode = 'action'; continue; }
+    if (/^(ИНТ|НАТ|INT|EXT)\.?\s/i.test(t)) { html += `<div class="pv-scene">${escapeHtml(t)}</div>`; mode = 'action'; continue; }
+    if (/^(ПЕРЕХОД|CUT TO|FADE TO|FADE OUT|FADE IN|ЗАТЕМНЕНИЕ|РАЗРЕЗ|НАПЛЫВ)\b/i.test(t)) { html += `<div class="pv-transition">${escapeHtml(t)}</div>`; mode = 'action'; continue; }
+    if (/^\(.*\)$/.test(t)) { html += `<div class="pv-paren">${escapeHtml(t)}</div>`; continue; }
+    if (mode === 'character') { html += `<div class="pv-dialogue">${escapeHtml(t)}</div>`; mode = 'dialogue'; continue; }
+    if (mode === 'dialogue') {
+      if (isCharacterName(t)) { html += `<div class="pv-character">${escapeHtml(t)}</div>`; mode = 'character'; continue; }
+      html += `<div class="pv-dialogue">${escapeHtml(t)}</div>`;
+      continue;
+    }
+    if (isCharacterName(t)) { html += `<div class="pv-character">${escapeHtml(t)}</div>`; mode = 'character'; continue; }
+    html += `<div class="pv-action">${escapeHtml(t)}</div>`;
+  }
+  return html;
+}
+
+function isCharacterName(t) {
+  if (t.length > 40 || t.length < 2) return false;
+  if (/[.!?]$/.test(t)) return false;
+  return /^[A-ZА-ЯЁ][A-ZА-ЯЁ\s\d\.\-]{0,38}$/.test(t);
+}
+
+function togglePreview() {
+  state.previewMode = !state.previewMode;
+  const btn = $('previewBtn');
+  if (state.previewMode) {
+    if (state.dirty) saveCurrentProject(true);
+    els.previewContainer.innerHTML = renderPreview(els.scriptInput.value);
+    els.previewContainer.style.display = 'block';
+    els.scriptInput.style.display = 'none';
+    btn.classList.add('active');
+    setHint('👁', 'Режим <b>превью</b> — так сценарий выглядит в стандартном формате.', 4000);
+  } else {
+    els.previewContainer.style.display = 'none';
+    els.scriptInput.style.display = 'block';
+    btn.classList.remove('active');
+    safeFocus(els.scriptInput);
+  }
+}
+
+/* ============ ФОКУС-РЕЖИМ ============ */
+function toggleFocusMode() {
+  state.focusMode = !state.focusMode;
+  const btn = $('focusToggle');
+  const bars = [
+    els.editorScreen.querySelector('.header'),
+    els.editorScreen.querySelector('.editor-toolbar'),
+    els.hintBar,
+    els.editorScreen.querySelector('.bottom-bar'),
+    els.editorScreen.querySelector('.editor-stats'),
+    els.goalBar
+  ];
+  bars.forEach(el => {
+    if (!el) return;
+    el.style.opacity = state.focusMode ? '0.12' : '1';
+    el.style.transition = 'opacity .35s ease';
+  });
+  btn.classList.toggle('toggle-on', state.focusMode);
+  toast(state.focusMode ? '🎯 Фокус-режим включён' : 'Обычный режим');
+}
+
+/* ============ ПОИСК И ЗАМЕНА ============ */
+let findState = { query: '', matches: [], current: -1 };
+
+function showFindReplace() {
+  const hasSelection = els.scriptInput.selectionStart !== els.scriptInput.selectionEnd;
+  const selectionText = hasSelection
+    ? els.scriptInput.value.substring(els.scriptInput.selectionStart, els.scriptInput.selectionEnd)
+    : '';
+
+  openModal(`
+    <h3>Найти и заменить</h3>
+    <input class="modal-input" id="findQuery" placeholder="Найти..." value="${escapeHtml(selectionText)}" autocomplete="off" aria-label="Найти">
+    <input class="modal-input" id="findReplaceWith" placeholder="Заменить на... (опционально)" autocomplete="off" aria-label="Заменить">
+    <div class="find-counter-row">
+      <span class="find-counter" id="findCounter">Введите запрос</span>
+      <div style="display:flex;gap:6px">
+        <button class="icon-btn" id="findPrev" aria-label="Предыдущее" style="width:34px;height:34px;font-size:14px">‹</button>
+        <button class="icon-btn" id="findNext" aria-label="Следующее" style="width:34px;height:34px;font-size:14px">›</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="findReplaceOne">Заменить</button>
+      <button class="btn btn-primary" id="findReplaceAll">Заменить все</button>
+    </div>
+  `);
+
+  const input = $('findQuery');
+  const replaceInput = $('findReplaceWith');
+  const counter = $('findCounter');
+
+  const recalc = () => {
+    const q = input.value;
+    findState.query = q;
+    findState.matches = [];
+    findState.current = -1;
+    if (!q) {
+      counter.textContent = 'Введите запрос';
+      return;
+    }
+    const text = els.scriptInput.value;
+    const lowerText = text.toLowerCase();
+    const lowerQ = q.toLowerCase();
+    let idx = 0;
+    while (true) {
+      const found = lowerText.indexOf(lowerQ, idx);
+      if (found === -1) break;
+      findState.matches.push(found);
+      idx = found + lowerQ.length;
+    }
+    if (findState.matches.length) {
+      const caret = els.scriptInput.selectionStart;
+      let nearest = 0;
+      for (let i = 0; i < findState.matches.length; i++) {
+        if (findState.matches[i] >= caret) { nearest = i; break; }
+        if (i === findState.matches.length - 1) nearest = i;
+      }
+      findState.current = nearest;
+      selectMatch();
+    }
+    updateCounter();
+  };
+
+  const updateCounter = () => {
+    if (!findState.matches.length) {
+      counter.textContent = findState.query ? 'Ничего не найдено' : 'Введите запрос';
+    } else {
+      counter.innerHTML = `Найдено: <b>${findState.matches.length}</b> · ${findState.current + 1} из ${findState.matches.length}`;
+    }
+  };
+
+  const selectMatch = () => {
+    if (findState.current < 0 || !findState.matches.length) return;
+    const pos = findState.matches[findState.current];
+    try {
+      els.scriptInput.focus({ preventScroll: false });
+      els.scriptInput.setSelectionRange(pos, pos + findState.query.length);
+      const before = els.scriptInput.value.substring(0, pos);
+      const lines = before.split('\n').length;
+      const lineHeight = parseFloat(getComputedStyle(els.scriptInput).lineHeight) || 24;
+      const targetScroll = Math.max(0, (lines - 3) * lineHeight);
+      els.scriptInput.scrollTop = targetScroll;
+    } catch(e) {}
+  };
+
+  const next = () => {
+    if (!findState.matches.length) return;
+    findState.current = (findState.current + 1) % findState.matches.length;
+    selectMatch();
+    updateCounter();
+  };
+  const prev = () => {
+    if (!findState.matches.length) return;
+    findState.current = (findState.current - 1 + findState.matches.length) % findState.matches.length;
+    selectMatch();
+    updateCounter();
+  };
+
+  let debounce;
+  input.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(recalc, 150);
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); next(); }
+  });
+
+  $('findPrev').onclick = prev;
+  $('findNext').onclick = next;
+
+  $('findReplaceOne').onclick = () => {
+    if (!findState.query) { toast('Введите запрос'); return; }
+    if (!findState.matches.length) { toast('Совпадений нет'); return; }
+    const pos = findState.matches[findState.current];
+    const replacement = replaceInput.value;
+    const ta = els.scriptInput;
+    const val = ta.value;
+    ta.value = val.substring(0, pos) + replacement + val.substring(pos + findState.query.length);
+    pushUndoNow();
+    updateCurrentProject();
+    updateStatsBar();
+    setTimeout(recalc, 30);
+    toast('✓ Заменено');
+  };
+
+  $('findReplaceAll').onclick = () => {
+    if (!findState.query) { toast('Введите запрос'); return; }
+    const ta = els.scriptInput;
+    const q = findState.query;
+    const replacement = replaceInput.value;
+    const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const count = (ta.value.match(re) || []).length;
+    if (!count) { toast('Совпадений нет'); return; }
+    ta.value = ta.value.replace(re, replacement);
+    pushUndoNow();
+    updateCurrentProject();
+    updateStatsBar();
+    updateGoalBar();
+    closeModal();
+    toast(`✓ Заменено: ${count}`);
+  };
+
+  setTimeout(() => safeFocus(input), 100);
+  if (selectionText) recalc();
+}
+
+/* ============ НАВИГАТОР ПО СЦЕНАМ ============ */
+function showSceneNavigator() {
+  const text = els.scriptInput.value;
+  const lines = text.split('\n');
+  const scenes = [];
+  let offset = 0;
+  lines.forEach((line, i) => {
+    const t = line.trim();
+    if (/^(ИНТ|НАТ|INT|EXT)\.?\s/i.test(t)) {
+      let preview = '';
+      for (let j = i + 1; j < lines.length; j++) {
+        if (lines[j].trim()) { preview = lines[j].trim().substring(0, 60); break; }
+      }
+      scenes.push({ title: t, offset, preview });
+    }
+    offset += line.length + 1;
+  });
+
+  if (!scenes.length) {
+    openModal(`
+      <h3>Навигатор по сценам</h3>
+      <div class="hb-empty-search" style="padding:30px 20px">
+        <div class="emoji" style="font-size:44px;opacity:.5;margin-bottom:12px">🎬</div>
+        <p style="color:var(--text-dim);font-size:13.5px;line-height:1.5">
+          В сценарии пока нет сцен.<br>
+          Нажмите <b style="color:var(--accent)">🎬 Сцена</b> в панели инструментов, чтобы добавить первую.
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="closeModal()">Понятно</button>
+      </div>
+    `);
+    return;
+  }
+
+  openModal(`
+    <h3>Сцены · ${scenes.length}</h3>
+    <div class="scene-nav-list" id="sceneNavList">
+      ${scenes.map((s, i) => `
+        <div class="scene-nav-item" data-offset="${s.offset}" role="button" tabindex="0">
+          <div>
+            <span class="scene-nav-num">${i + 1}</span>
+            <span class="scene-nav-title">${escapeHtml(s.title)}</span>
+          </div>
+          ${s.preview ? `<div class="scene-nav-preview">${escapeHtml(s.preview)}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
+    </div>
+  `);
+
+  els.modalBody.querySelectorAll('.scene-nav-item').forEach(item => {
+    const jump = () => {
+      const off = parseInt(item.dataset.offset, 10);
+      closeModal();
+      setTimeout(() => {
+        if (state.previewMode) togglePreview();
+        safeFocus(els.scriptInput);
+        try {
+          els.scriptInput.setSelectionRange(off, off);
+          const before = els.scriptInput.value.substring(0, off);
+          const linesBefore = before.split('\n').length;
+          const lineHeight = parseFloat(getComputedStyle(els.scriptInput).lineHeight) || 24;
+          els.scriptInput.scrollTop = Math.max(0, (linesBefore - 3) * lineHeight);
+        } catch(e) {}
+      }, 280);
+    };
+    item.addEventListener('click', jump);
+    item.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jump(); }
+    });
+  });
+}
+
+/* ============ МОДАЛКИ ============ */
+function repositionModal() {
+  const modal = els.modalContent;
+  if (!modal) return;
+
+  const safeTop = 120;   // ← отступ от верхнего края для модалок с полями ввода
+  const hasInput = !!modal.querySelector('input, textarea, select');
+
+  if (hasInput) {
+    // Модалка с полем ввода: фиксированная позиция, не двигается при клавиатуре.
+    modal.style.top = safeTop + 'px';
+    return;
+  }
+
+  // Модалка без полей ввода: центрируем.
+  modal.style.top = '0px';
+  const rect = modal.getBoundingClientRect();
+  const modalH = rect.height;
+  const screenH = window.innerHeight;
+  const safeBottom = 20;
+  const availableH = screenH - safeTop - safeBottom;
+  const freeSpace = Math.max(0, availableH - modalH);
+  const idealTop = safeTop + freeSpace * MODAL_VERTICAL_BIAS;
+  const top = Math.min(idealTop, screenH - modalH - safeBottom);
+  modal.style.top = Math.max(safeTop, top) + 'px';
+}
+
+function openModal(html) {
+  if (state.modalOpening) return;
+  state.modalOpening = true;
+
+  els.modalBody.innerHTML = html;
+
+  const modal = els.modalContent;
+  if (!modal) { state.modalOpening = false; return; }
+
+  // На время первичной установки позиции отключаем анимации,
+  // чтобы не было видимого «слайда» от top:0 к финальной позиции.
+  modal.classList.add('no-transition');
+
+  // Фиксируем max-height по исходному размеру экрана.
+  // Если бы max-height зависел от vh, при появлении клавиатуры
+  // модалка сжималась бы и кнопки «уезжали» вверх.
+  const initialH = Math.max(window.innerHeight, 500);
+  modal.style.maxHeight = Math.min(initialH * 0.8, 560) + 'px';
+
+  modal.scrollTop = 0;
+  repositionModal();
+
+  // Возвращаем анимации после первого кадра
+  requestAnimationFrame(() => {
+    modal.classList.remove('no-transition');
+    requestAnimationFrame(() => {
+      els.modalOverlay.classList.add('active');
+      state.modalOpening = false;
+    });
+  });
+}
+
+function closeModal() {
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+    try { active.blur(); } catch(e) {}
+  }
+  els.modalOverlay.classList.remove('active');
+  setTimeout(() => {
+    if (!els.modalOverlay.classList.contains('active')) {
+      els.modalBody.innerHTML = '';
+      if (els.modalContent) {
+        els.modalContent.style.top = '0px';
+        els.modalContent.style.maxHeight = '';
+      }
+    }
+  }, 300);
+}
+window.closeModal = closeModal;
+
+/* ============ ПОДРОБНАЯ СТАТИСТИКА ============ */
+function showStats() {
+  const text = els.scriptInput.value;
+  const words = countWords(text), chars = countChars(text);
+  const scenes = countScenes(text), pages = estimatePages(text);
+  const readMin = Math.max(1, Math.round(words / WORDS_PER_MINUTE));
+  const goalHtml = settings.wordGoal > 0
+    ? `<div class="stat-box" style="grid-column:1/-1">
+         <div class="stat-num">${Math.min(100, Math.round(words/settings.wordGoal*100))}%</div>
+         <div class="stat-label">Цель (${words} / ${settings.wordGoal})</div>
+       </div>`
+    : '';
+
+  openModal(`
+    <h3>Статистика сценария</h3>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-num">${words}</div><div class="stat-label">Слов</div></div>
+      <div class="stat-box"><div class="stat-num">${chars}</div><div class="stat-label">Символов</div></div>
+      <div class="stat-box"><div class="stat-num">${scenes}</div><div class="stat-label">Сцен</div></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-num">~${pages}</div><div class="stat-label">Стр. A4</div></div>
+      <div class="stat-box"><div class="stat-num">~${readMin}м</div><div class="stat-label">Экран</div></div>
+      <div class="stat-box"><div class="stat-num">${Math.max(1, Math.ceil(pages/120))}</div><div class="stat-label">Часов</div></div>
+    </div>
+    ${goalHtml ? `<div class="stats-grid" style="grid-template-columns:1fr">${goalHtml}</div>` : ''}
+    <p style="font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;text-align:center">
+      Оценка: 1 страница ≈ ${WORDS_PER_PAGE} слов, 1 минута экрана ≈ ${WORDS_PER_MINUTE} слов.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal()">Понятно</button>
+    </div>
+  `);
+}
+
+/* ============ ПОМОДОРО ============ */
+function showTimer() {
+  const p = state.pomodoro;
+  const m = Math.floor(p.timeLeft / 60), s = p.timeLeft % 60;
+  const timeStr = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const pct = p.total > 0 ? 1 - p.timeLeft / p.total : 0;
+
+  openModal(`
+    <h3>Помодоро — 25 минут</h3>
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:64px;font-weight:700;font-family:monospace;color:var(--accent);letter-spacing:2px" id="timerDisplay">${timeStr}</div>
+      <div style="height:6px;background:rgba(255,255,255,.08);border-radius:3px;margin:16px 0;overflow:hidden">
+        <div id="timerProgress" style="height:100%;width:${pct*100}%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width 1s linear;border-radius:3px"></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-dim)" id="timerStatus">
+        ${p.running ? 'Идёт сессия — сфокусируйтесь на письме!' : (p.timeLeft < p.total ? 'Пауза' : 'Нажмите «Старт» для начала сессии')}
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="timerToggle">${p.running ? '⏸ Пауза' : '▶ Старт'}</button>
+      <button class="btn btn-secondary" id="timerReset">↺ Сброс</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-dim);text-align:center;margin-top:14px">
+      Метод Помодоро: 25 минут работы → 5 минут отдыха
+    </p>
+  `);
+
+  $('timerToggle').onclick = () => {
+    if (state.pomodoro.running) pausePomodoro();
+    else startPomodoro();
+    updateTimerUI();
+  };
+  $('timerReset').onclick = () => {
+    resetPomodoro();
+    updateTimerUI();
+  };
+}
+
+function updateTimerUI() {
+  const p = state.pomodoro;
+  const display = $('timerDisplay');
+  if (display) {
+    const m = Math.floor(p.timeLeft / 60), s = p.timeLeft % 60;
+    display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  const progress = $('timerProgress');
+  if (progress) {
+    const pct = p.total > 0 ? 1 - p.timeLeft / p.total : 0;
+    progress.style.width = (pct * 100) + '%';
+  }
+  const toggleBtn = $('timerToggle');
+  if (toggleBtn) toggleBtn.textContent = p.running ? '⏸ Пауза' : '▶ Старт';
+  const status = $('timerStatus');
+  if (status) {
+    status.textContent = p.running
+      ? 'Идёт сессия — сфокусируйтесь на письме!'
+      : (p.timeLeft < p.total ? 'Пауза' : 'Нажмите «Старт» для начала сессии');
+  }
+}
+
+function startPomodoro() {
+  const p = state.pomodoro;
+  if (p.running) return;
+  if (p.interval) clearInterval(p.interval);
+  p.running = true;
+  p.interval = setInterval(() => {
+    p.timeLeft--;
+    if (p.timeLeft <= 0) {
+      clearInterval(p.interval);
+      p.interval = null;
+      p.running = false;
+      p.timeLeft = 0;
+      updateTimerUI();
+      toast('🎉 Сессия завершена! Сделайте перерыв.', 4000);
+      if (navigator.vibrate) navigator.vibrate([200,100,200]);
+      setTimeout(() => {
+        if (!state.pomodoro.running && state.pomodoro.timeLeft === 0) {
+          state.pomodoro.timeLeft = state.pomodoro.total;
+          updateTimerUI();
+        }
+      }, 2000);
+      return;
+    }
+    updateTimerUI();
+  }, 1000);
+}
+
+function pausePomodoro() {
+  const p = state.pomodoro;
+  if (p.interval) { clearInterval(p.interval); p.interval = null; }
+  p.running = false;
+}
+
+function resetPomodoro() {
+  pausePomodoro();
+  state.pomodoro.timeLeft = state.pomodoro.total;
+}
+
+/* ============ ФОРМАТ ============ */
+function showFormatHelp() {
+  openModal(`
+    <h3>Формат сценария</h3>
+    <div style="background:#f6f2e8;color:#1a1a1a;padding:14px;border-radius:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.55;margin-bottom:14px;white-space:pre;overflow-x:auto">
+<span style="font-weight:700">ИНТ. КВАРТИРА — НОЧЬ</span>
+
+Тёмная комната. На столе горит лампа.
+
+<span style="margin-left:25%;font-weight:600">ИВАН</span>
+<span style="margin-left:12%">Я не могу больше ждать.</span>
+
+<span style="margin-left:18%;font-style:italic;color:#555">(тихо)</span>
+<span style="margin-left:12%">Ещё немного — и всё.</span>
+
+<span style="display:block;text-align:right;font-weight:600">ПЕРЕХОД:</span>
+    </div>
+    <p style="font-size:13px;line-height:1.7;color:var(--text-dim);margin-bottom:16px;text-align:center">
+      Формат — это <b style="color:var(--text)">язык</b>, на котором говорит сценарист с режиссёром,
+      актёрами и продюсерами.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal()">Понятно</button>
+    </div>
+  `);
+}
+
+/* ============ МЕНЮ РЕДАКТОРА ============ */
+function showEditorMenu() {
+  const p = getCurrent();
+  if (!p) return;
+  openModal(`
+    <h3>Меню сценария</h3>
+    <div class="tools-panel">
+      <button class="tool-btn" id="mRename"><span class="t-emoji" aria-hidden="true">✏️</span> Переименовать</button>
+      <button class="tool-btn" id="mDuplicate"><span class="t-emoji" aria-hidden="true">📋</span> Дублировать</button>
+      <button class="tool-btn" id="mShareTxt"><span class="t-emoji" aria-hidden="true">📤</span> Поделиться .txt</button>
+      <button class="tool-btn" id="mShareFdx"><span class="t-emoji" aria-hidden="true">🎞️</span> Поделиться .fdx</button>
+      <button class="tool-btn" id="mCopy"><span class="t-emoji" aria-hidden="true">📋</span> Копировать текст</button>
+      <button class="tool-btn" id="mHandbook"><span class="t-emoji" aria-hidden="true">📖</span> Справочник</button>
+      <button class="tool-btn" id="mDelete" style="color:var(--danger);grid-column:1/-1"><span class="t-emoji" aria-hidden="true">🗑️</span> Удалить сценарий</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
+    </div>
+  `);
+
+  $('mRename').onclick = () => { closeModal(); setTimeout(renameProject, 340); };
+  $('mDuplicate').onclick = () => { duplicateProject(); closeModal(); };
+  $('mShareTxt').onclick = () => { shareScript('txt'); closeModal(); };
+  $('mShareFdx').onclick = () => { shareScript('fdx'); closeModal(); };
+  $('mCopy').onclick = () => { copyScriptText(); closeModal(); };
+  $('mHandbook').onclick = () => { closeModal(); setTimeout(openHandbook, 340); };
+  $('mDelete').onclick = () => { closeModal(); setTimeout(confirmDelete, 340); };
+}
+
+function renameProject() {
+  const p = getCurrent();
+  if (!p) return;
+  openModal(`
+    <h3>Переименовать</h3>
+    <input class="modal-input" id="renameInput" value="${escapeHtml(p.title)}" maxlength="80" enterkeyhint="done" aria-label="Новое название">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="renameOk">Сохранить</button>
+    </div>
+  `);
+  safeSelect($('renameInput'));
+  $('renameOk').onclick = () => {
+    const v = $('renameInput').value.trim();
+    if (v) {
+      p.title = v;
+      p.updatedAt = Date.now();
+      els.editorTitle.textContent = v;
+      saveProjects();
+      toast('✓ Переименовано');
+    }
+    closeModal();
+  };
+  $('renameInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('renameOk').click(); });
+}
+
+function renameProjectById(id) {
+  const p = state.projects.find(x => x.id === id);
+  if (!p) return;
+  openModal(`
+    <h3>Переименовать</h3>
+    <input class="modal-input" id="renameInput" value="${escapeHtml(p.title)}" maxlength="80" enterkeyhint="done" aria-label="Новое название">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="renameOk">Сохранить</button>
+    </div>
+  `);
+  safeSelect($('renameInput'));
+  $('renameOk').onclick = () => {
+    const v = $('renameInput').value.trim();
+    if (v) {
+      p.title = v;
+      p.updatedAt = Date.now();
+      saveProjects();
+      renderLibrary(els.searchInput ? els.searchInput.value : '');
+      if (state.currentId === id) els.editorTitle.textContent = v;
+      toast('✓ Переименовано');
+    }
+    closeModal();
+  };
+  $('renameInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('renameOk').click(); });
+}
+
+function duplicateProject() {
+  const p = getCurrent();
+  if (!p) return;
+  duplicateProjectById(p.id);
+}
+
+function duplicateProjectById(id) {
+  const p = state.projects.find(x => x.id === id);
+  if (!p) return;
+  state.projects.push({
+    ...p,
+    id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    title: p.title + ' (копия)',
+    createdAt: Date.now(), updatedAt: Date.now()
+  });
+  saveProjects();
+  renderLibrary();
+  toast('✓ Копия создана');
+}
+
+function confirmDelete() {
+  const p = getCurrent();
+  if (!p) return;
+  confirmDeleteById(p.id, true);
+}
+
+function confirmDeleteById(id, returnToLibrary = false) {
+  const p = state.projects.find(x => x.id === id);
+  if (!p) return;
+  openModal(`
+    <h3>Удалить сценарий?</h3>
+    <p style="font-size:14px;color:var(--text-dim);line-height:1.6;margin-bottom:20px;text-align:center">
+      «${escapeHtml(p.title)}» будет удалён безвозвратно.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-danger" id="delOk">Удалить</button>
+    </div>
+  `);
+  $('delOk').onclick = () => {
+    state.projects = state.projects.filter(x => x.id !== p.id);
+    saveProjects();
+    closeModal();
+    if (returnToLibrary || state.currentId === p.id) {
+      state.currentId = null;
+      showScreen('library');
+    }
+    renderLibrary();
+    toast('Удалено');
+  };
+}
+
+/* ============ ЭКСПОРТ / ПОДЕЛИТЬСЯ / КОПИРОВАТЬ ============ */
+function safeName(s) { return s.replace(/[^\wа-яё\- ]/gi,'_').trim() || 'scenario'; }
+
+function shareOrCopy({ title, text, filename, mimeType, successCopyMsg }) {
+  if (navigator.share) {
+    if (navigator.canShare && filename && typeof File !== 'undefined') {
+      try {
+        const file = new File([text], filename, { type: mimeType || 'text/plain' });
+        if (navigator.canShare({ files: [file] })) {
+          navigator.share({ title: title, files: [file] })
+            .catch(() => { copyToClipboard(text, successCopyMsg); });
+          return;
+        }
+      } catch(e) {}
+    }
+    navigator.share({ title: title, text: text })
+      .catch(() => { copyToClipboard(text, successCopyMsg); });
+  } else {
+    copyToClipboard(text, successCopyMsg);
+  }
+}
+
+function copyToClipboard(text, successMsg) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => toast('✓ ' + successMsg))
+      .catch(() => legacyCopy(text, successMsg));
+    return;
+  }
+  legacyCopy(text, successMsg);
+}
+
+function legacyCopy(text, successMsg) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.top = '0';
+  ta.style.left = '0';
+  ta.style.width = '1px';
+  ta.style.height = '1px';
+  ta.style.opacity = '0';
+  ta.style.pointerEvents = 'none';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch(e) { ok = false; }
+  document.body.removeChild(ta);
+  if (ok) toast('✓ ' + successMsg);
+  else toast('Не удалось скопировать');
+}
+
+function shareScript(format) {
+  const p = getCurrent();
+  if (!p) return;
+  shareScriptById(p.id, format);
+}
+
+function shareScriptById(id, format) {
+  const p = state.projects.find(x => x.id === id);
+  if (!p) return;
+  const filename = safeName(p.title) + '.' + format;
+  const text = format === 'fdx' ? buildFdx(p) : (p.text || '');
+  const mimeType = format === 'fdx' ? 'application/xml' : 'text/plain';
+
+  if (!text.trim()) { toast('Сценарий пуст'); return; }
+
+  shareOrCopy({
+    title: p.title,
+    text: text,
+    filename: filename,
+    mimeType: mimeType,
+    successCopyMsg: 'Текст скопирован в буфер'
+  });
+}
+
+function copyScriptText() {
+  const p = getCurrent();
+  if (!p) return;
+  if (!(p.text || '').trim()) { toast('Сценарий пуст'); return; }
+  copyToClipboard(p.text, 'Текст скопирован в буфер');
+}
+
+function escapeXml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+function buildFdx(p) {
+  const lines = (p.text || '').split('\n');
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<FinalDraft DocumentType="Script" Template="No" Version="1">\n  <Content>';
+  for (const line of lines) {
+    const t = line.trim();
+    let type = 'Action';
+    if (/^(ИНТ|НАТ|INT|EXT)\.?\s/i.test(t)) type = 'Scene Heading';
+    else if (/^\(.*\)$/.test(t)) type = 'Parenthetical';
+    else if (isCharacterName(t)) type = 'Character';
+    else if (/^(ПЕРЕХОД|CUT TO|FADE)/i.test(t)) type = 'Transition';
+    xml += `\n    <Paragraph Type="${escapeXml(type)}"><Text>${escapeXml(line)}</Text></Paragraph>`;
+  }
+  xml += '\n  </Content>\n</FinalDraft>';
+  return xml;
+}
+
+/* ============================================================
+   СПРАВОЧНИК
+   ============================================================ */
+
+const HANDBOOK = {
+  about: {
+    label: 'О приложении',
+    intro: {
+      badge: 'Версия 1.1 · Бета',
+      title: 'Сценарист — редактор для ваших историй',
+      text: 'Всё, что нужно для написания сценариев — прямо в кармане. Работает офлайн, хранит данные только на вашем устройстве.'
+    },
+    sections: [
+      {
+        icon: '✨',
+        title: 'Что это за приложение?',
+        html: `
+          <p><b>«Сценарист»</b> — это лёгкий и быстрый редактор для написания сценариев на телефоне или планшете. Он создан для того, чтобы вам было удобно писать в любом месте: в метро, кафе или на диване.</p>
+          <p>Приложение следует стандартам профессионального сценария: заголовки сцен, имена персонажей, реплики и ремарки — всё форматируется автоматически.</p>
+          <div class="hb-warn">
+            <b>🧪 Бета-версия:</b> приложение находится в активной разработке. Возможны ошибки и недочёты. Пожалуйста, сообщайте о них в нашем Telegram-канале — так мы сделаем «Сценарист» лучше.
+          </div>
+        `
+      },
+      {
+        icon: '🚀',
+        title: 'Ключевые возможности',
+        html: `
+          <ul>
+            <li><b>Быстрая вставка элементов</b> — 6 кнопок для сцены, действия, персонажа, реплики, ремарки и перехода</li>
+            <li><b>Автоподстановка имён персонажей</b> — при вставке реплики предлагаются ранее использованные имена</li>
+            <li><b>Режим превью</b> — просмотр сценария в профессиональном формате</li>
+            <li><b>Живая статистика</b> — слова, страницы, сцены в реальном времени</li>
+            <li><b>Поиск и замена</b> — быстрый поиск по тексту с подсчётом и навигацией</li>
+            <li><b>Навигатор по сценам</b> — список всех сцен с переходом к нужной</li>
+            <li><b>Цель по словам</b> — прогресс-бар и напоминание при достижении</li>
+            <li><b>Помодоро-таймер</b> — техника продуктивной работы</li>
+            <li><b>Режим фокуса</b> — скрывает всё лишнее, оставляя только текст</li>
+            <li><b>Шаблоны сценариев</b> — пустой, короткометражка, эпизод, реклама</li>
+            <li><b>Настраиваемый размер шрифта</b> — 13–20px в редакторе</li>
+            <li><b>Автосохранение</b> — ничего не потеряется</li>
+            <li><b>Экспорт в .txt и .fdx</b> — через системное «Поделиться»</li>
+          </ul>
+        `
+      },
+      {
+        icon: '🔒',
+        title: 'Приватность и данные',
+        html: `
+          <p>Все ваши сценарии хранятся <b>только на вашем устройстве</b> в защищённом локальном хранилище приложения.</p>
+          <p>Приложение <b>не отправляет данные</b> на сервер, не требует регистрации, не собирает статистику и не показывает рекламу.</p>
+          <div class="hb-tip">
+            <b>💡 Совет:</b> если хотите резервную копию — используйте «Поделиться .txt» и сохраните файл в облако или отправьте себе в мессенджер.
+          </div>
+        `
+      },
+      {
+        icon: '⚙️',
+        title: 'Настройки приложения',
+        html: `
+          <p>В настройках (иконка <b>⚙️</b> в шапке главного экрана) можно:</p>
+          <p style="color:var(--text);font-weight:600;margin-bottom:6px">Внешний вид</p>
+          <ul>
+            <li><b>Анимации</b> — каскады появления, пружинные нажатия, плавные переходы. <b>По умолчанию выключены</b>.</li>
+            <li><b>Эффекты</b> — размытие фона под модалками, тени, свечения, градиенты. <b>По умолчанию выключены</b>.</li>
+            <li><b>Размер шрифта редактора</b> — от 13 до 20px, влияет только на текст в редакторе.</li>
+          </ul>
+          <p style="color:var(--text);font-weight:600;margin-bottom:6px">Письмо</p>
+          <ul>
+            <li><b>Цель по словам</b> — установите целевую длину сценария; прогресс-бар появится в редакторе.</li>
+          </ul>
+          <p style="color:var(--text);font-weight:600;margin-bottom:6px">Интерфейс</p>
+          <ul>
+            <li><b>Показывать тосты</b> — всплывающие уведомления о действиях. <b>По умолчанию включено</b>.</li>
+            <li><b>Советы и пояснения</b> — подсказки в редакторе под панелью инструментов. <b>По умолчанию включено</b>.</li>
+          </ul>
+        `
+      },
+      {
+        icon: '👆',
+        title: 'Долгое нажатие на проект',
+        html: `
+          <p>Зажмите карточку проекта в библиотеке (около 0,5 секунды) — откроется меню быстрых действий:</p>
+          <ul>
+            <li><b>Открыть</b> — сразу в редактор</li>
+            <li><b>Переименовать</b></li>
+            <li><b>Дублировать</b> — создать копию</li>
+            <li><b>Поделиться</b> — экспорт в .txt</li>
+            <li><b>Копировать</b> — текст в буфер обмена</li>
+            <li><b>Удалить</b></li>
+          </ul>
+          <div class="hb-tip"><b>💡 Совет:</b> долгое нажатие работает и мышью (на компьютере) — зажмите левую кнопку на карточке.</div>
+        `
+      },
+      {
+        icon: '✈️',
+        title: 'Канал разработчика',
+        html: `
+          <p>Присоединяйтесь к Telegram-каналу разработчика — там новости, обновления, советы и обратная связь по приложению.</p>
+          <a href="${DEV_CHANNEL_INTENT}" class="hb-link-btn" id="devChannelLink">
+            <div class="link-icon" aria-hidden="true">✈️</div>
+            <div class="link-info">
+              <div class="link-title">${CHANNEL_NAME}</div>
+              <div class="link-url">t.me/DarkEyeDev</div>
+            </div>
+            <div class="link-arrow" aria-hidden="true">›</div>
+          </a>
+          <p style="font-size:12.5px;color:var(--text-dim);margin-top:10px">
+            В канале: анонсы обновлений, идеи для сценариев, ответы на вопросы и обратная связь по бета-версии.
+          </p>
+        `
+      },
+      {
+        icon: 'ℹ️',
+        title: 'Версия и обратная связь',
+        html: `
+          <p><b>Версия:</b> 1.1 · Бета-тестирование</p>
+          <p><b>Разработчик:</b> ${DEV_NAME}</p>
+          <p><b>Статус:</b> активная разработка. Мы рады любой обратной связи — нашли баг, есть идея или просто хотите поделиться впечатлением? Пишите в Telegram-канал!</p>
+        `
+      }
+    ]
+  },
+
+  tutorials: {
+    label: 'Туториалы',
+    intro: {
+      badge: 'Пошагово',
+      title: 'Как освоить приложение за 5 минут',
+      text: 'Короткие инструкции для каждой функции. Начните с первого туториала и двигайтесь дальше.'
+    },
+    sections: [
+      {
+        icon: '✍️',
+        title: 'Как написать первый сценарий',
+        html: `
+          <div class="hb-step"><div class="hb-step-num">1</div><div class="hb-step-text">На главном экране нажмите <b>+</b> в правом нижнем углу.</div></div>
+          <div class="hb-step"><div class="hb-step-num">2</div><div class="hb-step-text">Сначала выберите <b>шаблон</b> (Пустой, Короткометражка, Эпизод, Реклама).</div></div>
+          <div class="hb-step"><div class="hb-step-num">3</div><div class="hb-step-text">Затем появится плашка с <b>названием</b> — введите его и нажмите <b>«Создать»</b>. Передумали? Кнопка «← Изменить шаблон» вернёт на первый шаг.</div></div>
+          <div class="hb-step"><div class="hb-step-num">4</div><div class="hb-step-text">Откроется редактор. Нажмите <code>🎬 Сцена</code> — появится заголовок сцены. Замените «ЛОКАЦИЯ» на нужное место.</div></div>
+          <div class="hb-step"><div class="hb-step-num">5</div><div class="hb-step-text">Когда появится персонаж — нажмите <code>👤 Персонаж</code>, выберите ранее использованное имя или создайте новое.</div></div>
+          <div class="hb-step"><div class="hb-step-num">6</div><div class="hb-step-text">Сценарий сохраняется автоматически.</div></div>
+        `
+      },
+      {
+        icon: '🧩',
+        title: 'Как выбрать шаблон',
+        html: `
+          <p>При создании нового сценария вы сначала выбираете <b>шаблон</b> — это заготовка структуры.</p>
+          <ul>
+            <li><b>📄 Пустой</b> — чистый лист, всё пишете сами</li>
+            <li><b>🎬 Короткометражка</b> — одна сцена-заготовка с примером структуры</li>
+            <li><b>📺 Эпизод</b> — тизер + первый акт</li>
+            <li><b>📢 Реклама</b> — ролик до 60 секунд</li>
+          </ul>
+          <div class="hb-tip"><b>💡 Совет:</b> если выбрали не тот шаблон — нажмите «← Изменить шаблон» и вернитесь на шаг назад.</div>
+        `
+      },
+      {
+        icon: '🔎',
+        title: 'Поиск и замена по тексту',
+        html: `
+          <p>Кнопка <b>🔎</b> в нижней панели редактора открывает поиск и замену.</p>
+          <ul>
+            <li><b>Найти</b> — введите запрос, приложение подсветит совпадения и покажет их количество</li>
+            <li><b>‹</b> и <b>›</b> — переход к предыдущему и следующему совпадению</li>
+            <li><b>Заменить</b> — заменить текущее выделенное совпадение</li>
+            <li><b>Заменить все</b> — заменить все вхождения за один раз</li>
+          </ul>
+          <div class="hb-tip"><b>💡 Совет:</b> если у вас выделен фрагмент текста, он автоматически подставится в поле «Найти».</div>
+        `
+      },
+      {
+        icon: '🧭',
+        title: 'Навигатор по сценам',
+        html: `
+          <p>Кнопка <b>🧭</b> в нижней панели открывает список всех сцен.</p>
+          <div class="hb-step"><div class="hb-step-num">1</div><div class="hb-step-text">Нажмите <b>🧭</b> — увидите список заголовков сцен с кратким превью.</div></div>
+          <div class="hb-step"><div class="hb-step-num">2</div><div class="hb-step-text">Тап на сцену — редактор прокрутится к её началу и установит курсор.</div></div>
+        `
+      },
+      {
+        icon: '🎯',
+        title: 'Цель по словам',
+        html: `
+          <p>Задайте целевую длину сценария — прогресс будет виден в редакторе.</p>
+          <div class="hb-step"><div class="hb-step-num">1</div><div class="hb-step-text">Откройте <b>⚙️ Настройки</b> → группа «Письмо».</div></div>
+          <div class="hb-step"><div class="hb-step-num">2</div><div class="hb-step-text">Нажмите <b>🎯 Цель по словам</b>.</div></div>
+          <div class="hb-step"><div class="hb-step-num">3</div><div class="hb-step-text">Введите число или выберите быстрый вариант (1000 / 3000 / 5000 / 10000).</div></div>
+          <div class="hb-tip"><b>💡 Совет:</b> цель можно отключить, введя <b>0</b>.</div>
+        `
+      },
+      {
+        icon: '👁',
+        title: 'Как читать в режиме превью',
+        html: `
+          <p><b>Режим превью</b> показывает ваш текст так, как его увидят режиссёр и актёры.</p>
+          <div class="hb-step"><div class="hb-step-num">1</div><div class="hb-step-text">Откройте сценарий в редакторе.</div></div>
+          <div class="hb-step"><div class="hb-step-num">2</div><div class="hb-step-text">Нажмите иконку <b>👁</b> в правом верхнем углу.</div></div>
+          <div class="hb-step"><div class="hb-step-num">3</div><div class="hb-step-text">Вы увидите сценарий на «бумаге» — с заголовками сцен, выделенными именами и правильными отступами.</div></div>
+        `
+      },
+      {
+        icon: '📤',
+        title: 'Как сохранить сценарий',
+        html: `
+          <p>Приложение поддерживает два формата экспорта:</p>
+          <ul>
+            <li><b>.txt</b> — обычный текстовый файл, открывается где угодно</li>
+            <li><b>.fdx</b> — формат Final Draft, стандарт индустрии</li>
+          </ul>
+          <div class="hb-step"><div class="hb-step-num">1</div><div class="hb-step-text">Откройте сценарий.</div></div>
+          <div class="hb-step"><div class="hb-step-num">2</div><div class="hb-step-text">Нажмите <b>⋯</b> в правом верхнем углу → «Меню сценария».</div></div>
+          <div class="hb-step"><div class="hb-step-num">3</div><div class="hb-step-text">Выберите <b>«Поделиться .txt»</b>, <b>«Поделиться .fdx»</b> или <b>«Копировать текст»</b>.</div></div>
+        `
+      },
+      {
+        icon: '⏱️',
+        title: 'Как работать по методу Помодоро',
+        html: `
+          <p><b>Помодоро</b> — техника продуктивности: 25 минут концентрированной работы, затем 5 минут отдыха.</p>
+          <div class="hb-step"><div class="hb-step-num">1</div><div class="hb-step-text">В редакторе нажмите <b>⏱️</b> в нижней панели.</div></div>
+          <div class="hb-step"><div class="hb-step-num">2</div><div class="hb-step-text">Нажмите <b>«▶ Старт»</b> — таймер пойдёт.</div></div>
+          <div class="hb-step"><div class="hb-step-num">3</div><div class="hb-step-text">Пишите, не отвлекаясь, до сигнала. Телефон завибрирует.</div></div>
+        `
+      },
+      {
+        icon: '🎯',
+        title: 'Как использовать режим фокуса',
+        html: `
+          <p>Если вас отвлекают кнопки и панели — включите фокус-режим.</p>
+          <div class="hb-step"><div class="hb-step-num">1</div><div class="hb-step-text">В панели инструментов нажмите <b>🎯 Фокус</b>.</div></div>
+          <div class="hb-step"><div class="hb-step-num">2</div><div class="hb-step-text">Все панели станут почти прозрачными.</div></div>
+          <div class="hb-step"><div class="hb-step-num">3</div><div class="hb-step-text">Повторное нажатие выключает режим.</div></div>
+        `
+      }
+    ]
+  },
+
+  features: {
+    label: 'Функции',
+    intro: {
+      badge: 'Справочник',
+      title: 'Все элементы сценария',
+      text: 'Каждый элемент формата с примером и объяснением. Держите под рукой во время письма.'
+    },
+    sections: [
+      {
+        icon: '🎬',
+        title: 'Заголовок сцены',
+        html: `
+          <p><b>Формат:</b> <code>ИНТ./НАТ. ЛОКАЦИЯ — ВРЕМЯ</code></p>
+          <div class="hb-example"><span class="ex-scene">ИНТ. КВАРТИРА ИВАНА — НОЧЬ</span>
+<span class="ex-scene">НАТ. ПАРК — ДЕНЬ</span></div>
+          <ul>
+            <li><b>ИНТ.</b> — интерьер (внутри помещения)</li>
+            <li><b>НАТ.</b> — натура (снаружи)</li>
+            <li><b>ЛОКАЦИЯ</b> — где именно происходит сцена</li>
+            <li><b>ВРЕМЯ</b> — ДЕНЬ, НОЧЬ, УТРО, ВЕЧЕР, НЕПРЕРЫВНО</li>
+          </ul>
+          <p>Английские эквиваленты: <code>INT.</code> и <code>EXT.</code></p>
+        `
+      },
+      {
+        icon: '📝',
+        title: 'Описание действия',
+        html: `
+          <p>Описание того, что <b>видит</b> зритель. Пишется от третьего лица в настоящем времени.</p>
+          <div class="hb-example">Тёмная комната. На столе горит лампа.
+За окном идёт дождь.
+
+Иван сидит за ноутбуком и печатает.</div>
+          <ul>
+            <li>Только то, что можно <b>увидеть и услышать</b></li>
+            <li>Не описывайте мысли персонажей</li>
+            <li>Короткие абзацы — 2–4 строки</li>
+          </ul>
+        `
+      },
+      {
+        icon: '👤',
+        title: 'Имя персонажа',
+        html: `
+          <p>Имя говорящего — всегда <b>ЗАГЛАВНЫМИ БУКВАМИ</b>, с новой строки, перед репликой.</p>
+          <div class="hb-example"><span class="ex-char">ИВАН</span>
+<span class="ex-char">МАРИЯ (30, уставшая)</span></div>
+          <p>Возраст и характеристику можно добавить в скобках один раз при первом появлении.</p>
+          <div class="hb-tip"><b>💡 Совет:</b> при нажатии на <code>👤 Персонаж</code> приложение предложит уже использованные имена — удобно для длинных сценариев.</div>
+        `
+      },
+      {
+        icon: '💬',
+        title: 'Реплика',
+        html: `
+          <p>Слова персонажа. Идёт <b>сразу после</b> имени, с отступом.</p>
+          <div class="hb-example"><span class="ex-char">ИВАН</span>
+<span class="ex-dial">Я не могу больше ждать.</span></div>
+          <ul>
+            <li>Без кавычек</li>
+            <li>Пишите как звучит живая речь</li>
+            <li>Одна реплика = одна мысль</li>
+          </ul>
+        `
+      },
+      {
+        icon: '( )',
+        title: 'Ремарка',
+        html: `
+          <p>Уточнение, <b>как</b> персонаж произносит реплику. Пишется в скобках.</p>
+          <div class="hb-example"><span class="ex-char">ИВАН</span>
+<span class="ex-paren">(тихо, сам себе)</span>
+<span class="ex-dial">Ещё одна глава. И спать.</span></div>
+          <ul>
+            <li>Только при необходимости</li>
+            <li>Коротко: одно-два слова</li>
+          </ul>
+        `
+      },
+      {
+        icon: '➡️',
+        title: 'Переход',
+        html: `
+          <p>Обозначает смену сцены. Пишется с правой стороны, ЗАГЛАВНЫМИ, с двоеточием.</p>
+          <div class="hb-example"><span class="ex-trans">ПЕРЕХОД:</span>
+<span class="ex-trans">ЗАТЕМНЕНИЕ:</span>
+<span class="ex-trans">РАЗРЕЗ:</span></div>
+        `
+      },
+      {
+        icon: '📊',
+        title: 'Статистика и метрики',
+        html: `
+          <p>В редакторе снизу видна <b>живая статистика</b>:</p>
+          <ul>
+            <li><b>Слова</b> — количество слов в сценарии</li>
+            <li><b>Страницы</b> — оценка объёма (≈${WORDS_PER_PAGE} слов на страницу)</li>
+            <li><b>Сцены</b> — число заголовков сцен</li>
+            <li><b>Статус</b> — сохранено / есть изменения</li>
+          </ul>
+          <p>Нажмите <b>📊</b> в нижней панели для подробной статистики.</p>
+          <div class="hb-tip"><b>💡 Норма:</b> короткометражка — 10–30 стр., полный метр — 90–120 стр., сериал — 25–60 стр. на эпизод.</div>
+        `
+      },
+      {
+        icon: '↶',
+        title: 'Отмена и повтор',
+        html: `
+          <p>Кнопки <b>↶</b> и <b>↷</b> в нижней панели отменяют и повторяют действия.</p>
+          <ul>
+            <li>История хранится для <b>100 последних изменений</b></li>
+            <li>Работает и для вставки элементов, и для обычного набора текста</li>
+            <li>Горячие клавиши: <span class="hb-kbd">Ctrl</span>+<span class="hb-kbd">Z</span> — отмена, <span class="hb-kbd">Ctrl</span>+<span class="hb-kbd">Shift</span>+<span class="hb-kbd">Z</span> — повтор</li>
+          </ul>
+        `
+      },
+      {
+        icon: '⌨️',
+        title: 'Горячие клавиши',
+        html: `
+          <ul>
+            <li><span class="hb-kbd">Ctrl</span>+<span class="hb-kbd">S</span> — сохранить</li>
+            <li><span class="hb-kbd">Ctrl</span>+<span class="hb-kbd">Z</span> — отменить</li>
+            <li><span class="hb-kbd">Ctrl</span>+<span class="hb-kbd">Shift</span>+<span class="hb-kbd">Z</span> — повторить</li>
+            <li><span class="hb-kbd">Ctrl</span>+<span class="hb-kbd">F</span> — найти и заменить</li>
+          </ul>
+        `
+      }
+    ]
+  },
+
+  tips: {
+    label: 'Советы',
+    intro: {
+      badge: 'Мастерство',
+      title: 'Советы для сценаристов',
+      text: 'Проверенные приёмы, которые помогут писать быстрее и лучше. Возвращайтесь к ним перед каждой сессией.'
+    },
+    sections: [
+      {
+        icon: '🎯',
+        title: 'Показывай, не рассказывай',
+        html: `
+          <p>Главное правило сценариста. Зритель <b>видит</b> историю, а не читает её.</p>
+          <div class="hb-example">❌ Иван был очень зол.
+✅ Иван сжимает кулаки. На скулах играют желваки.</div>
+          <p>Эмоции и характер передаются <b>через действия</b>, а не через описание чувств.</p>
+        `
+      },
+      {
+        icon: '🎬',
+        title: 'Начинай с логлайна',
+        html: `
+          <p><b>Логлайн</b> — суть истории в одном предложении. Если вы не можете её сформулировать — история ещё не готова.</p>
+          <div class="hb-example">«Молодой сценарист обнаруживает, что каждая написанная им сцена сбывается — и теперь должен решить, что важнее: правда или безопасность близких».</div>
+        `
+      },
+      {
+        icon: '⚡',
+        title: 'Каждая сцена должна двигать историю',
+        html: `
+          <p>Если сцену можно вырезать без потерь — её нужно вырезать.</p>
+          <p>Проверяйте каждую сцену:</p>
+          <ul>
+            <li><b>Что изменилось?</b> — герой узнал, решил, потерял, приобрёл</li>
+            <li><b>Зачем это здесь?</b> — какая функция у сцены в общей истории</li>
+            <li><b>Можно ли короче?</b> — почти всегда можно</li>
+          </ul>
+        `
+      },
+      {
+        icon: '🔥',
+        title: 'Конфликт — двигатель сцены',
+        html: `
+          <p>Формула любой сцены: <b>цель → препятствие → результат</b>.</p>
+          <ul>
+            <li><b>Цель</b> — чего хочет герой прямо сейчас</li>
+            <li><b>Препятствие</b> — что ему мешает</li>
+            <li><b>Результат</b> — герой достиг цели или нет</li>
+          </ul>
+        `
+      },
+      {
+        icon: '🗣️',
+        title: 'Читай вслух',
+        html: `
+          <p>Реплики нужно <b>слышать</b>, а не читать глазами. Читайте вслух — сразу заметите фальшь, длинноты и «нерусскую» речь.</p>
+          <div class="hb-tip"><b>💡 Приём:</b> попробуйте произнести реплику своим голосом в роли персонажа. Если язык заплетается — перепишите.</div>
+        `
+      },
+      {
+        icon: '📆',
+        title: 'Пиши каждый день',
+        html: `
+          <p>Правило <b>«одна страница в день»</b>: 220 слов. За год — полнометражный сценарий и ещё немного.</p>
+          <ul>
+            <li>Не ждите вдохновения — оно приходит в процессе</li>
+            <li>Лучше 30 минут каждый день, чем 5 часов раз в месяц</li>
+            <li>Первый черновик — «просто дописать»</li>
+          </ul>
+        `
+      },
+      {
+        icon: '✂️',
+        title: 'Пиши — потом редактируй',
+        html: `
+          <p>Не редактируйте во время письма. Это главный убийца прогресса.</p>
+          <div class="hb-step"><div class="hb-step-num">1</div><div class="hb-step-text"><b>Черновик:</b> пишите быстро, не оглядываясь.</div></div>
+          <div class="hb-step"><div class="hb-step-num">2</div><div class="hb-step-text"><b>Отдых:</b> отложите текст на день-два.</div></div>
+          <div class="hb-step"><div class="hb-step-num">3</div><div class="hb-step-text"><b>Правка:</b> перечитайте с карандашом. Сократите минимум на 10%.</div></div>
+        `
+      },
+      {
+        icon: '🎭',
+        title: 'Знай своих персонажей',
+        html: `
+          <p>Перед сценарием напишите для каждого героя:</p>
+          <ul>
+            <li><b>Что он хочет</b> больше всего? (внешняя цель)</li>
+            <li><b>Что ему нужно</b> на самом деле? (внутренняя потребность)</li>
+            <li><b>Чего он боится?</b></li>
+            <li><b>Какая у него тайна?</b></li>
+          </ul>
+        `
+      },
+      {
+        icon: '🚫',
+        title: 'Чего избегать',
+        html: `
+          <ul>
+            <li><b>Внутренних монологов</b> — если это не закадровый голос по задумке</li>
+            <li><b>Описания мыслей</b> — «Иван думает, что...»</li>
+            <li><b>Режиссуры</b> — «камера наезжает», «музыка играет»</li>
+            <li><b>Длинных реплик</b> — никто не говорит абзацами</li>
+            <li><b>Клише</b> — «в последний момент», «внезапно»</li>
+          </ul>
+          <div class="hb-warn"><b>⚠️ Правило:</b> если это нельзя снять на камеру — этого не должно быть в сценарии.</div>
+        `
+      }
+    ]
+  }
+};
+
+const HB_TABS = ['about', 'tutorials', 'features', 'tips'];
+
+const HB_SEARCH_INDEX = [];
+function buildHandbookSearchIndex() {
+  HB_TABS.forEach(tabKey => {
+    const tab = HANDBOOK[tabKey];
+    tab.sections.forEach(section => {
+      HB_SEARCH_INDEX.push({
+        tabKey, tabLabel: tab.label, section,
+        searchText: (section.title + ' ' + stripHtml(section.html)).toLowerCase()
+      });
+    });
+  });
+}
+
+function renderHandbookTabs() {
+  els.handbookTabs.innerHTML = HB_TABS.map(tab => `
+    <button class="hb-tab ${tab === state.handbookTab ? 'active' : ''}" data-tab="${tab}">
+      ${HANDBOOK[tab].label}
+    </button>
+  `).join('');
+  els.handbookTabs.querySelectorAll('.hb-tab').forEach(btn => {
+    btn.onclick = () => {
+      state.handbookTab = btn.dataset.tab;
+      state.handbookSearch = '';
+      els.handbookSearchInput.value = '';
+      renderHandbookTabs();
+      renderHandbook();
+    };
+  });
+}
+
+function renderHandbook(search = '') {
+  const tab = HANDBOOK[state.handbookTab];
+  if (!tab) return;
+  if (search.trim()) return renderHandbookSearch(search.trim());
+
+  let html = '';
+  if (tab.intro) {
+    html += `
+      <div class="hb-intro">
+        <div class="hb-badge">${tab.intro.badge}</div>
+        <h2>${tab.intro.title}</h2>
+        <p>${tab.intro.text}</p>
+      </div>`;
+  }
+  html += tab.sections.map((s, i) => `
+    <div class="hb-accordion" data-idx="${i}">
+      <div class="hb-acc-header" role="button" tabindex="0">
+        <span class="hb-acc-icon" aria-hidden="true">${s.icon}</span>
+        <span class="hb-acc-title">${s.title}</span>
+        <span class="hb-acc-arrow" aria-hidden="true">›</span>
+      </div>
+      <div class="hb-acc-body">
+        <div class="hb-acc-inner">${s.html}</div>
+      </div>
+    </div>
+  `).join('');
+  els.handbookContent.innerHTML = html;
+
+  els.handbookContent.querySelectorAll('.hb-accordion').forEach(acc => {
+    const header = acc.querySelector('.hb-acc-header');
+    header.onclick = () => acc.classList.toggle('open');
+    header.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        acc.classList.toggle('open');
+      }
+    });
+  });
+
+  const link = $('devChannelLink');
+  if (link) {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      openDevChannel();
+    });
+  }
+}
+
+function renderHandbookSearch(query) {
+  const q = query.toLowerCase();
+  const results = HB_SEARCH_INDEX.filter(r => r.searchText.includes(q));
+  if (!results.length) {
+    els.handbookContent.innerHTML = `
+      <div class="hb-empty-search">
+        <div class="emoji" aria-hidden="true">🔍</div>
+        <p>По запросу «${escapeHtml(query)}» ничего не найдено</p>
+      </div>`;
+    return;
+  }
+  els.handbookContent.innerHTML = `
+    <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:12px">
+      Найдено: <b style="color:var(--accent)">${results.length}</b>
+    </p>
+    ${results.map(r => `
+      <div class="hb-accordion open">
+        <div class="hb-acc-header" style="cursor:default">
+          <span class="hb-acc-icon" aria-hidden="true">${r.section.icon}</span>
+          <span class="hb-acc-title">${r.section.title}</span>
+          <span style="font-size:11px;color:var(--text-dim);flex-shrink:0;white-space:nowrap">${r.tabLabel}</span>
+        </div>
+        <div class="hb-acc-body" style="max-height:4000px">
+          <div class="hb-acc-inner">${r.section.html}</div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || '';
+}
+
+function openHandbook() {
+  showScreen('handbook');
+  renderHandbookTabs();
+  renderHandbook();
+}
+
+function openDevChannel() {
+  try {
+    const isAndroid = /android/i.test(navigator.userAgent);
+    if (isAndroid) window.location.href = DEV_CHANNEL_INTENT;
+    else window.location.href = DEV_CHANNEL_URL;
+  } catch(e) {
+    window.location.href = DEV_CHANNEL_URL;
+  }
+}
+
+/* ============ СОБЫТИЯ ============ */
+function bindEvents() {
+  $('newProjectBtn').onclick = () => {
+    const templates = [
+      { id: 'blank',   emoji: '📄', title: 'Пустой',          desc: 'Чистый лист' },
+      { id: 'short',   emoji: '🎬', title: 'Короткометражка', desc: '1 сцена-заготовка' },
+      { id: 'episode', emoji: '📺', title: 'Эпизод',          desc: 'Тизер + Акт 1' },
+      { id: 'ad',      emoji: '📢', title: 'Реклама',         desc: 'Ролик до 60 сек' }
+    ];
+
+    let selectedTemplate = null;
+
+    openModal(`
+      <h3>Новый сценарий</h3>
+
+      <div class="step-block" id="stepTemplate">
+        <div class="step-heading"><span>Шаг 1 · Шаблон</span></div>
+        <div class="template-grid" id="templateGrid">
+          ${templates.map(t => `
+            <button class="template-item" data-template="${t.id}" type="button">
+              <span class="template-emoji">${t.emoji}</span>
+              <div class="template-title">${t.title}</div>
+              <div class="template-desc">${t.desc}</div>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="step-block" id="stepName" style="display:none">
+        <div class="step-heading">
+          <span>Шаг 2 · Название</span>
+          <button type="button" class="step-change-btn" id="changeTemplateBtn">← Изменить шаблон</button>
+        </div>
+        <div class="chosen-template" id="chosenTemplate"></div>
+        <input class="modal-input" id="newTitle" placeholder="Введите название..." maxlength="80" enterkeyhint="done" aria-label="Название сценария">
+      </div>
+
+      <div class="modal-actions" id="modalActions" style="display:none">
+        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary" id="createOk">Создать</button>
+      </div>
+    `);
+
+    const stepTemplate   = $('stepTemplate');
+    const stepName       = $('stepName');
+    const modalActions   = $('modalActions');
+    const chosenTemplate = $('chosenTemplate');
+    const templateGrid   = $('templateGrid');
+
+    const goToTemplates = () => {
+      selectedTemplate = null;
+      stepTemplate.style.display = 'block';
+      stepName.style.display = 'none';
+      modalActions.style.display = 'none';
+      stepTemplate.style.animation = 'none';
+      void stepTemplate.offsetWidth;
+      stepTemplate.style.animation = '';
+      repositionModal();
+    };
+
+    const goToName = (t) => {
+      selectedTemplate = t;
+      chosenTemplate.innerHTML = `
+        <span style="font-size:22px" aria-hidden="true">${t.emoji}</span>
+        <span style="flex:1;font-weight:600">${t.title}</span>
+      `;
+      stepTemplate.style.display = 'none';
+      stepName.style.display = 'block';
+      modalActions.style.display = 'flex';
+      stepName.style.animation = 'none';
+      void stepName.offsetWidth;
+      stepName.style.animation = '';
+      repositionModal();
+      setTimeout(() => safeFocus($('newTitle')), 120);
+    };
+
+    templateGrid.querySelectorAll('[data-template]').forEach(btn => {
+      btn.onclick = () => {
+        const t = templates.find(x => x.id === btn.dataset.template);
+        if (t) goToName(t);
+      };
+    });
+
+    $('changeTemplateBtn').onclick = goToTemplates;
+
+    $('createOk').onclick = () => {
+      if (!selectedTemplate) { toast('Сначала выберите шаблон'); return; }
+      const proj = createProject($('newTitle').value, selectedTemplate.id);
+      closeModal();
+      renderLibrary();
+      setTimeout(() => openProject(proj.id), 320);
+    };
+
+    $('newTitle').addEventListener('keydown', e => {
+      if (e.key === 'Enter') $('createOk').click();
+    });
+  };
+
+  $('searchToggle').onclick = () => {
+    els.searchBar.classList.toggle('active');
+    if (els.searchBar.classList.contains('active')) {
+      setTimeout(() => safeFocus(els.searchInput), 260);
+    } else {
+      els.searchInput.value = '';
+      renderLibrary();
+    }
+  };
+  $('searchClose').onclick = () => {
+    els.searchBar.classList.remove('active');
+    els.searchInput.value = '';
+    renderLibrary();
+  };
+  els.searchInput.addEventListener('input', e => renderLibrary(e.target.value));
+  $('handbookBtn').onclick = openHandbook;
+  $('settingsBtn').onclick = openSettings;
+
+  $('settingsBack').onclick = () => showScreen('library');
+
+  if (els.animToggleRow) {
+    els.animToggleRow.onclick = toggleAnimations;
+    els.animToggleRow.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAnimations(); }
+    });
+  }
+  if (els.effectsToggleRow) {
+    els.effectsToggleRow.onclick = toggleEffects;
+    els.effectsToggleRow.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleEffects(); }
+    });
+  }
+  if (els.toastsToggleRow) {
+    els.toastsToggleRow.onclick = toggleToasts;
+    els.toastsToggleRow.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleToasts(); }
+    });
+  }
+  if (els.tipsToggleRow) {
+    els.tipsToggleRow.onclick = toggleTips;
+    els.tipsToggleRow.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTips(); }
+    });
+  }
+
+  if (els.fontSizeSlider) {
+    els.fontSizeSlider.addEventListener('input', e => {
+      if (els.fontSizeValue) els.fontSizeValue.textContent = e.target.value + 'px';
+      document.documentElement.style.setProperty('--editor-font-size', e.target.value + 'px');
+    });
+    els.fontSizeSlider.addEventListener('change', e => {
+      setFontSize(e.target.value);
+    });
+  }
+
+  if (els.wordGoalBtn) els.wordGoalBtn.onclick = showWordGoalSetting;
+
+  if ($('deleteAllScenariosBtn')) $('deleteAllScenariosBtn').onclick = deleteAllScenarios;
+  if ($('deleteSomeScenariosBtn')) $('deleteSomeScenariosBtn').onclick = deleteSomeScenarios;
+  if ($('resetSettingsBtn')) $('resetSettingsBtn').onclick = resetSettings;
+  if ($('clearAllBtn')) $('clearAllBtn').onclick = clearAllData;
+
+  $('backBtn').onclick = () => {
+    if (state.dirty) saveCurrentProject(true);
+    state.currentId = null;
+    showScreen('library');
+    renderLibrary();
+  };
+
+  $('previewBtn').onclick = togglePreview;
+  $('saveBtn').onclick = () => saveCurrentProject();
+  $('menuBtn').onclick = showEditorMenu;
+
+  els.scriptInput.addEventListener('input', () => {
+    updateCurrentProject();
+    scheduleUndo();
+    scheduleAutosave();
+  });
+
+  document.querySelectorAll('#editorToolbar .tool-chip').forEach(btn => {
+    btn.onclick = () => {
+      if (btn.id === 'focusToggle') toggleFocusMode();
+      else if (btn.dataset.insert) insertElement(btn.dataset.insert);
+    };
+  });
+
+  $('undoBtn').onclick = undo;
+  $('redoBtn').onclick = redo;
+  $('findBtn').onclick = showFindReplace;
+  $('scenesBtn').onclick = showSceneNavigator;
+  $('statsBtn').onclick = showStats;
+  $('timerBtn').onclick = showTimer;
+  $('formatBtn').onclick = showFormatHelp;
+
+  $('handbookBack').onclick = () => showScreen('library');
+  $('handbookSearchToggle').onclick = () => {
+    els.handbookSearchBar.classList.toggle('active');
+    if (els.handbookSearchBar.classList.contains('active')) {
+      setTimeout(() => safeFocus(els.handbookSearchInput), 260);
+    } else {
+      els.handbookSearchInput.value = '';
+      renderHandbook();
+    }
+  };
+  $('handbookSearchClose').onclick = () => {
+    els.handbookSearchBar.classList.remove('active');
+    els.handbookSearchInput.value = '';
+    renderHandbook();
+  };
+
+  let hbSearchTimer;
+  els.handbookSearchInput.addEventListener('input', e => {
+    const v = e.target.value;
+    clearTimeout(hbSearchTimer);
+    hbSearchTimer = setTimeout(() => renderHandbook(v), HANDBOOK_SEARCH_DEBOUNCE_MS);
+  });
+
+  els.modalOverlay.addEventListener('click', e => {
+    if (e.target === els.modalOverlay) closeModal();
+  });
+
+  document.addEventListener('contextmenu', e => {
+    const tag = e.target.tagName;
+    if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+    if (e.target.closest && e.target.closest('button, .icon-btn, .fab, .tool-chip, .stat-box, .settings-btn')) {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 's') { e.preventDefault(); if (state.currentId) saveCurrentProject(); }
+      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); if (state.currentId) undo(); }
+      if (e.key === 'z' && e.shiftKey) { e.preventDefault(); if (state.currentId) redo(); }
+      if (e.key === 'f' && state.currentId) { e.preventDefault(); showFindReplace(); }
+    }
+    if (e.key === 'Escape' && els.modalOverlay.classList.contains('active')) {
+      closeModal();
+    }
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (state.dirty && state.currentId) saveCurrentProject(true);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.dirty && state.currentId) {
+      saveCurrentProject(true);
+    }
+  });
+}
+
+/* ============ АВТОСОХРАНЕНИЕ ============ */
+let autosaveTimer;
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    if (state.dirty) {
+      const p = getCurrent();
+      if (p) {
+        p.text = els.scriptInput.value;
+        p.updatedAt = Date.now();
+        saveProjects();
+        state.dirty = false;
+        updateSaveIndicator();
+      }
+    }
+  }, 1500);
+}
+
+/* ============ ЗАПУСК ============ */
+function init() {
+  loadSettings();
+  applySettings();
+  applyCycledEmoji();
+  loadProjects();
+  buildHandbookSearchIndex();
+  renderLibrary();
+  bindEvents();
+  setupKeyboardHandling();
+  setupPressFeedback();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+  </html>
